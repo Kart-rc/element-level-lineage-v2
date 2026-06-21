@@ -48,9 +48,8 @@ OpenLineage is the canonical lineage ingestion, exchange, and export format.
 
 ## Source Standards
 
-- [OpenLineage object model](https://openlineage.io/docs/1.37.0/spec/object-model/)
+- [OpenLineage object model](https://openlineage.io/docs/spec/object-model/)
 - [OpenLineage naming conventions](https://openlineage.io/docs/spec/naming)
 - [OpenLineage facets and extensibility](https://openlineage.io/docs/spec/facets/)
-- [OpenLineage column-level lineage facet](https://openlineage.io/docs/1.42.1/spec/facets/dataset-facets/column_lineage_facet/)
+- [OpenLineage column-level lineage facet](https://openlineage.io/docs/spec/facets/dataset-facets/column_lineage_facet/)
 - [OpenLineage API](https://openlineage.io/apidocs/openapi/)
-
