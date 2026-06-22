@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  a { color: inherit; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: oklch(88% 0.006 262); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
+  @media print { .no-print { display: none !important; } .page { box-shadow: none !important; margin: 0 !important; } body { background: #fff !important; } }
+</style>
+</helmet>
+
+<div style="background:oklch(95.5% 0.004 262);min-height:100vh;font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased;color:oklch(30% 0.02 262)">
+  <div style="max-width:1280px;margin:0 auto;display:flex;gap:36px;padding:40px 28px 80px;align-items:flex-start">
+
+    <!-- TOC -->
+    <aside class="no-print" style="flex:none;width:200px;position:sticky;top:40px;display:flex;flex-direction:column;gap:3px">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:14px">
+        <span style="width:22px;height:22px;border-radius:6px;background:oklch(54% 0.10 70);display:block"></span>
+        <span style="font:700 15px 'IBM Plex Sans';color:oklch(26% 0.02 262);letter-spacing:-0.01em">Throughline</span>
+      </div>
+      <div style="font:600 8.5px 'IBM Plex Mono';letter-spacing:.12em;text-transform:uppercase;color:oklch(60% 0.02 262);margin:0 0 8px 2px">Roadmap &amp; LOE</div>
+      <sc-for list="{{ toc }}" as="t" hint-placeholder-count="7">
+        <a href="{{ t.href }}" style="display:flex;gap:9px;padding:5px 8px;border-radius:6px;text-decoration:none;font:500 12px 'IBM Plex Sans';color:oklch(46% 0.02 262)" style-hover="background:oklch(92% 0.01 262)"><span style="font:600 10px 'IBM Plex Mono';color:oklch(68% 0.02 262);width:14px;flex:none">{{ t.n }}</span><span>{{ t.label }}</span></a>
+      </sc-for>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid oklch(90% 0.006 262);display:flex;flex-direction:column;gap:6px">
+        <div style="font:600 8.5px 'IBM Plex Mono';letter-spacing:.12em;text-transform:uppercase;color:oklch(60% 0.02 262);margin:0 0 2px 2px">Suite</div>
+        <a href="Index - Throughline PRDs.dc.html" style="font:500 11.5px 'IBM Plex Sans';color:oklch(50% 0.02 262);text-decoration:none;padding:3px 8px">Overview</a>
+        <a href="PRD 1 - Lineage Collection.dc.html" style="font:500 11.5px 'IBM Plex Sans';color:oklch(50% 0.02 262);text-decoration:none;padding:3px 8px">PRD 1 · Collection</a>
+        <a href="PRD 2 - Impact Analysis.dc.html" style="font:500 11.5px 'IBM Plex Sans';color:oklch(50% 0.02 262);text-decoration:none;padding:3px 8px">PRD 2 · Impact</a>
+        <a href="PRD 3 - UI Representation.dc.html" style="font:500 11.5px 'IBM Plex Sans';color:oklch(50% 0.02 262);text-decoration:none;padding:3px 8px">PRD 3 · UI/UX</a>
+      </div>
+    </aside>
+
+    <!-- PAGE -->
+    <main class="page" style="flex:1;min-width:0;max-width:980px;background:#fff;border:1px solid oklch(91% 0.006 262);border-radius:3px;box-shadow:0 1px 3px rgba(20,30,50,.06);padding:56px 56px 72px">
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+        <span style="font:600 9px 'IBM Plex Mono';letter-spacing:.14em;text-transform:uppercase;color:#fff;background:oklch(54% 0.10 70);padding:4px 9px;border-radius:4px">Delivery Plan</span>
+        <span style="font:500 11px 'IBM Plex Mono';color:oklch(58% 0.02 262)">v0.9 · Draft for review</span>
+        <span style="font:500 11px 'IBM Plex Mono';color:oklch(58% 0.02 262);margin-left:auto">Horizon: 24 months · 8 quarters</span>
+      </div>
+      <h1 style="font:600 38px 'Newsreader',serif;color:oklch(22% 0.02 262);letter-spacing:-0.01em;line-height:1.1;margin:0 0 12px">Roadmap &amp; Level of Effort</h1>
+      <p style="font:400 16px/1.6 'IBM Plex Sans';color:oklch(45% 0.02 262);margin:0 0 4px;max-width:64ch">Sequencing the three PRDs into one delivery plan: what runs in series, what parallelizes, the effort per workstream, and the team capacity to make the 24-month target — with the lever to compress it.</p>
+
+      <!-- summary stat band -->
+      <div style="display:flex;gap:10px;margin:30px 0 8px;flex-wrap:wrap">
+        <sc-for list="{{ statBand }}" as="s" hint-placeholder-count="4">
+          <div style="flex:1;min-width:150px;border:1px solid oklch(92% 0.006 262);border-radius:10px;padding:13px 15px;border-top:3px solid {{ s.color }}">
+            <div style="font:700 21px 'IBM Plex Sans';color:oklch(28% 0.02 262)">{{ s.value }}</div>
+            <div style="font:500 10px 'IBM Plex Mono';letter-spacing:.04em;text-transform:uppercase;color:oklch(58% 0.02 262);margin-top:3px">{{ s.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- 1 ASSUMPTIONS -->
+      <h2 id="s1" style="font:600 21px 'Newsreader',serif;color:oklch(24% 0.02 262);margin:42px 0 12px"><span style="font:600 13px 'IBM Plex Mono';color:oklch(54% 0.10 70);margin-right:10px">01</span>Assumptions &amp; dependencies</h2>
+      <div style="display:flex;gap:18px">
+        <div style="flex:1">
+          <div style="font:600 9px 'IBM Plex Mono';letter-spacing:.1em;text-transform:uppercase;color:oklch(54% 0.10 70);margin-bottom:9px">Assumptions</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{ assumptions }}" as="a" hint-placeholder-count="5">
+              <li style="display:flex;gap:9px;font:400 12.5px/1.5 'IBM Plex Sans';color:oklch(40% 0.02 262)"><span style="color:oklch(60% 0.08 70);flex:none">▪</span>{{ a.t }}</li>
+            </sc-for>
+          </ul>
+        </div>
+        <div style="flex:1">
+          <div style="font:600 9px 'IBM Plex Mono';letter-spacing:.1em;text-transform:uppercase;color:oklch(54% 0.13 300);margin-bottom:9px">External dependencies</div>
+          <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{ deps }}" as="d" hint-placeholder-count="5">
+              <li style="display:flex;gap:9px;font:400 12.5px/1.5 'IBM Plex Sans';color:oklch(40% 0.02 262)"><span style="color:oklch(58% 0.12 300);flex:none">▪</span>{{ d.t }}</li>
+            </sc-for>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2 GANTT -->
+      <h2 id="s2" style="font:600 21px 'Newsreader',serif;color:oklch(24% 0.02 262);margin:42px 0 6px"><span style="font:600 13px 'IBM Plex Mono';color:oklch(54% 0.10 70);margin-right:10px">02</span>Timeline</h2>
+      <p style="font:400 13.5px/1.6 'IBM Plex Sans';color:oklch(44% 0.02 262);margin:0 0 16px;max-width:64ch">The <strong style="font-weight:600">24-month, two-squad target plan</strong> — four phases of two quarters each. Bars show scheduled work; ◆ are go-live milestones, colors group by area. §06 shows how the same scope stretches to one squad (~38 mo) or compresses to three (~19 mo).</p>
+
+      <!-- legend -->
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px">
+        <sc-for list="{{ areaLegend }}" as="l" hint-placeholder-count="5">
+          <span style="display:flex;align-items:center;gap:7px;font:500 11px 'IBM Plex Sans';color:oklch(46% 0.02 262)"><span style="width:14px;height:10px;border-radius:3px;background:{{ l.color }}"></span>{{ l.label }}</span>
+        </sc-for>
+      </div>
+
+      <div style="border:1px solid oklch(91% 0.006 262);border-radius:11px;overflow:hidden">
+        <!-- phase header -->
+        <div style="display:flex;border-bottom:1px solid oklch(92% 0.006 262)">
+          <div style="flex:none;width:218px;background:oklch(98% 0.003 262)"></div>
+          <div style="flex:1;display:flex">
+            <sc-for list="{{ phases }}" as="p" hint-placeholder-count="4">
+              <div style="flex:{{ p.flex }};padding:8px 10px;border-left:1px solid oklch(93% 0.006 262);background:{{ p.bg }}">
+                <div style="font:600 10px 'IBM Plex Sans';color:{{ p.fg }}">{{ p.name }}</div>
+                <div style="font:500 8.5px 'IBM Plex Mono';color:oklch(60% 0.02 262);margin-top:1px">{{ p.quarters }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <!-- quarter header -->
+        <div style="display:flex;border-bottom:1px solid oklch(92% 0.006 262)">
+          <div style="flex:none;width:218px;padding:6px 12px;font:600 8px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:oklch(60% 0.02 262);background:oklch(98% 0.003 262);display:flex;align-items:center">Workstream</div>
+          <div style="flex:1;display:flex">
+            <sc-for list="{{ quarters }}" as="q" hint-placeholder-count="8">
+              <div style="flex:1;padding:6px 0;text-align:center;font:600 9px 'IBM Plex Mono';color:oklch(54% 0.02 262);border-left:1px solid oklch(94% 0.006 262)">{{ q.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <!-- rows -->
+        <sc-for list="{{ ganttGroups }}" as="g" hint-placeholder-count="5">
+          <div>
+            <div style="display:flex;background:{{ g.bandBg }};border-bottom:1px solid oklch(95% 0.004 262)">
+              <div style="flex:none;width:218px;padding:5px 12px;font:600 8px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;color:{{ g.color }}">{{ g.name }}</div>
+              <div style="flex:1"></div>
+            </div>
+            <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;border-bottom:1px solid oklch(96% 0.004 262);min-height:34px">
+                <div style="flex:none;width:218px;padding:6px 12px 6px 18px;font:500 11px 'IBM Plex Sans';color:oklch(38% 0.02 262);display:flex;align-items:center;gap:6px">
+                  <span style="font:600 8px 'IBM Plex Mono';color:{{ r.color }};flex:none">{{ r.id }}</span>{{ r.label }}
+                </div>
+                <div style="flex:1;position:relative;height:34px;background-image:repeating-linear-gradient(to right, transparent, transparent calc(12.5% - 1px), oklch(95% 0.004 262) calc(12.5% - 1px), oklch(95% 0.004 262) 12.5%)">
+                  <div style="position:absolute;top:8px;height:18px;left:{{ r.left }};width:{{ r.width }};background:{{ r.color }};border-radius:5px;box-shadow:0 1px 2px rgba(20,30,50,.12)"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <!-- milestones -->
+        <div style="display:flex;align-items:center;min-height:36px;background:oklch(98.5% 0.003 262)">
+          <div style="flex:none;width:218px;padding:6px 12px;font:600 8px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;color:oklch(48% 0.02 262)">Milestones</div>
+          <div style="flex:1;position:relative;height:36px;background-image:repeating-linear-gradient(to right, transparent, transparent calc(12.5% - 1px), oklch(95% 0.004 262) calc(12.5% - 1px), oklch(95% 0.004 262) 12.5%)">
+            <sc-for list="{{ milestones }}" as="m" hint-placeholder-count="4">
+              <div style="position:absolute;top:0;height:36px;left:{{ m.left }};transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+                <span style="font:600 12px 'IBM Plex Mono';color:{{ m.color }}">◆</span>
+                <span style="font:600 7.5px 'IBM Plex Mono';color:{{ m.color }};white-space:nowrap">{{ m.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 SERIES VS PARALLEL -->
+      <h2 id="s3" style="font:600 21px 'Newsreader',serif;color:oklch(24% 0.02 262);margin:44px 0 8px"><span style="font:600 13px 'IBM Plex Mono';color:oklch(54% 0.10 70);margin-right:10px">03</span>Series vs. parallel</h2>
+      <p style="font:400 13.5px/1.6 'IBM Plex Sans';color:oklch(44% 0.02 262);margin:0 0 16px;max-width:64ch">A spine of dependencies must run in series; everything else parallelizes around it. Understanding the critical path is what lets you spend a second squad wisely.</p>
+      <div style="display:flex;gap:14px">
+        <div style="flex:1;border:1px solid oklch(88% 0.04 35);background:oklch(98.5% 0.012 38);border-radius:10px;padding:15px 17px">
+          <div style="font:600 9px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;color:oklch(54% 0.13 35);margin-bottom:11px">Critical path · must be in series</div>
+          <div style="display:flex;flex-direction:column;gap:0">
+            <sc-for list="{{ critPath }}" as="c" hint-placeholder-count="5">
+              <div style="display:flex;gap:11px">
+                <div style="flex:none;display:flex;flex-direction:column;align-items:center">
+                  <span style="width:9px;height:9px;border-radius:50%;background:oklch(57% 0.16 35);flex:none"></span>
+                  <span style="width:2px;flex:1;background:oklch(88% 0.04 35);min-height:10px"></span>
+                </div>
+                <div style="padding-bottom:11px;margin-top:-3px"><span style="font:600 11.5px 'IBM Plex Sans';color:oklch(34% 0.02 262)">{{ c.title }}</span><div style="font:400 10.5px/1.45 'IBM Plex Sans';color:oklch(50% 0.02 262);margin-top:1px">{{ c.why }}</div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:1;border:1px solid oklch(86% 0.04 155);background:oklch(98.5% 0.012 155);border-radius:10px;padding:15px 17px">
+          <div style="font:600 9px 'IBM Plex Mono';letter-spacing:.08em;text-transform:uppercase;color:oklch(48% 0.12 155);margin-bottom:11px">Parallelizable · runs alongside</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <sc-for list="{{ parallelizable }}" as="p" hint-placeholder-count="5">
+              <div style="display:flex;gap:9px;font:400 11.5px/1.45 'IBM Plex Sans';color:oklch(40% 0.02 262)"><span style="color:oklch(52% 0.12 155);font-weight:600;flex:none">∥</span><span><strong style="font-weight:600;color:oklch(34% 0.02 262)">{{ p.title }}</strong> — {{ p.note }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4 LOE TABLE -->
+      <h2 id="s4" style="font:600 21px 'Newsreader',serif;color:oklch(24% 0.02 262);margin:44px 0 8px"><span style="font:600 13px 'IBM Plex Mono';color:oklch(54% 0.10 70);margin-right:10px">04</span>Level of effort</h2>
+      <p style="font:400 13.5px/1.6 'IBM Plex Sans';color:oklch(44% 0.02 262);margin:0 0 14px;max-width:64ch">Per workstream: t-shirt size, a rough eng-week range, lead roles, and whether it sits on the critical path.</p>
+      <table style="width:100%;border-collapse:collapse;font-family:'IBM Plex Sans'">
+        <thead><tr style="background:oklch(97% 0.004 262)">
+          <th style="text-align:left;font:600 8.5px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:oklch(58% 0.02 262);padding:9px 10px;border-bottom:1px solid oklch(91% 0.006 262)">Workstream</th>
+          <th style="text-align:center;font:600 8.5px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:oklch(58% 0.02 262);padding:9px 8px;border-bottom:1px solid oklch(91% 0.006 262)">Size</th>
+          <th style="text-align:center;font:600 8.5px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:oklch(58% 0.02 262);padding:9px 8px;border-bottom:1px solid oklch(91% 0.006 262)">Eng-weeks</th>
+          <th style="text-align:left;font:600 8.5px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:oklch(58% 0.02 262);padding:9px 10px;border-bottom:1px solid oklch(91% 0.006 262)">Lead roles</th>
+          <th style="text-align:center;font:600 8.5px 'IBM Plex Mono';letter-spacing:.05em;text-transform:uppercase;color:oklch(58% 0.02 262);padding:9px 8px;border-bottom:1px solid oklch(91% 0.006 262)">Path</th>
+        </tr></thead>
+        <tbody>
+          <sc-for list="{{ loe }}" as="r" hint-placeholder-count="13">
+            <tr style="border-bottom:1px solid oklch(95.5% 0.004 262)">
+              <td style="padding:8px 10px;vertical-align:top"><span style="font:600 8px 'IBM Plex Mono';color:{{ r.color }};margin-right:6px">{{ r.id }}</span><span style="font:500 12px 'IBM Plex Sans';color:oklch(34% 0.02 262)">{{ r.label }}</span></td>
+              <td style="padding:8px 8px;text-align:center;vertical-align:top"><span style="font:600 10px 'IBM Plex Mono';color:{{ r.sizeFg }};background:{{ r.sizeBg }};padding:3px 8px;border-radius:4px">{{ r.size }}</span></td>
+              <td style="padding:8px 8px;text-align:center;vertical-align:top;font:500 11px 'IBM Plex Mono';color:oklch(44% 0.02 262)">{{ r.weeks }}</td>
+              <td style="padding:8px 10px;vertical-align:top;font:400 11px 'IBM Plex Sans';color:oklch(46% 0.02 262)">{{ r.roles }}</td>
+              <td style="padding:8px 8px;text-align:center;vertical-align:top"><span style="font:600 9px 'IBM Plex Mono';color:{{ r.critColor }}">{{ r.critLabel }}</span></td>
+            </tr>
+          </sc-for>
+          <tr style="background:oklch(98% 0.003 262)">
+            <td style="padding:10px;font:600 12px 'IBM Plex Sans';color:oklch(30% 0.02 262)">Total</td>
+            <td style="padding:10px;text-align:center;font:600 10px 'IBM Plex Mono';color:oklch(46% 0.02 262)">—</td>
+            <td style="padding:10px;text-align:center;font:600 11.5px 'IBM Plex Mono';color:oklch(30% 0.02 262)">{{ loeTotal }}</td>
+            <td style="padding:10px" colspan="2"><span style="font:400 10.5px 'IBM Plex Sans';color:oklch(54% 0.02 262)">≈ 10 engineers (2 squads) × ~24 months · single squad of 5 ≈ 38 months</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 4b SIZING METHODOLOGY -->
+      <div style="font:600 14px 'IBM Plex Sans';color:oklch(30% 0.02 262);margin:26px 0 4px">How the sizing was done</div>
+      <p style="font:400 13px/1.6 'IBM Plex Sans';color:oklch(44% 0.02 262);margin:0 0 14px;max-width:64ch">Sizes are not single guesses. Every workstream was estimated three independent ways and reconciled, and the eng-week ranges already fold in a focus factor, an integration tax, and AI-assisted productivity where it genuinely applies.</p>
+
+      <!-- t-shirt scale -->
+      <div style="border:1px solid oklch(92% 0.006 262);border-radius:10px;padding:13px 15px;margin-bottom:12px">
+        <div style="font:600 8.5px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:oklch(60% 0.02 262);margin-bottom:9px">T-shirt → eng-weeks (calibrated)</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <sc-for list="{{ sizeScale }}" as="z" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:8px;border:1px solid oklch(93% 0.006 262);border-radius:8px;padding:7px 11px">
+              <span style="font:600 10px 'IBM Plex Mono';color:{{ z.fg }};background:{{ z.bg }};padding:3px 8px;border-radius:4px">{{ z.t }}</span>
+              <span style="font:600 11px 'IBM Plex Mono';color:oklch(36% 0.02 262)">{{ z.wk }}</span>
+              <span style="font:400 10px 'IBM Plex Sans';color:oklch(56% 0.02 262)">{{ z.eg }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- three methods -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-bottom:12px">
+        <sc-for list="{{ estMethods }}" as="m" hint-placeholder-count="3">
+          <div style="border:1px solid oklch(92% 0.006 262);border-radius:10px;padding:14px 15px;border-top:3px solid {{ m.color }}">
+            <div style="font:600 12px 'IBM Plex Sans';color:oklch(30% 0.02 262)">{{ m.title }}</div>
+            <div style="font:400 11px/1.55 'IBM Plex Sans';color:oklch(48% 0.02 262);margin-top:6px">{{ m.body }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- baked in -->
+      <div style="border:1px solid oklch(92% 0.006 262);border-radius:10px;padding:14px 16px;margin-bottom:12px">
+        <div style="font:600 8.5px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:oklch(60% 0.02 262);margin-bottom:10px">Baked into every estimate</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 18px">
+          <sc-for list="{{ bakedIn }}" as="b" hint-placeholder-count="4">
+            <div style="display:flex;gap:9px;align-items:flex-start">
+              <span style="font:700 11px 'IBM Plex Mono';color:oklch(54% 0.10 70);flex:none">{{ b.k }}</span>
+              <div><span style="font:600 11px 'IBM Plex Sans';color:oklch(34% 0.02 262)">{{ b.title }}</span> <span style="font:400 11px/1.5 'IBM Plex Sans';color:oklch(48% 0.02 262)">— {{ b.body }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- AI productivity -->
+      <div style="border:1px solid oklch(88% 0.04 252);border-radius:10px;padding:15px 16px;background:oklch(98.7% 0.012 252)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span style="font:600 9px 'IBM Plex Mono';letter-spacing:.06em;text-transform:uppercase;color:#fff;background:oklch(52% 0.13 252);padding:3px 8px;border-radius:4px">AI productivity</span>
+          <span style="font:600 12px 'IBM Plex Sans';color:oklch(32% 0.02 262)">Where AI assistance is — and isn’t — priced in</span>
+        </div>
+        <p style="font:400 11.5px/1.55 'IBM Plex Sans';color:oklch(46% 0.02 262);margin:0 0 12px;max-width:66ch">Ranges already apply a blended discount: amenable work is reduced, judgment- and integration-bound work is not. This is deliberately conservative — and it is why adding AI tooling or more engineers to the critical path barely moves the calendar.</p>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <sc-for list="{{ aiUplift }}" as="a" hint-placeholder-count="3">
+            <div style="display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid oklch(93% 0.006 262);border-radius:8px;padding:10px 12px">
+              <div style="flex:none;width:88px;text-align:center"><div style="font:700 15px 'IBM Plex Sans';color:{{ a.color }}">{{ a.uplift }}</div><div style="font:500 8px 'IBM Plex Mono';text-transform:uppercase;letter-spacing:.04em;color:oklch(60% 0.02 262);margin-top:1px">{{ a.band }}</div></div>
+              <div style="flex:1;border-left:1px solid oklch(93% 0.006 262);padding-left:12px">
+                <div style="font:600 11.5px 'IBM Plex Sans';color:oklch(32% 0.02 262)">{{ a.where }}</div>
+                <div style="font:400 11px/1.5 'IBM Plex Sans';color:oklch(48% 0.02 262);margin-top:2px">{{ a.note }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- 5 CAPACITY -->
+      <h2 id="s5" style="font:600 21px 'Newsreader',serif;color:oklch(24% 0.02 262);margin:44px 0 8px"><span style="font:600 13px 'IBM Plex Mono';color:oklch(54% 0.10 70);margin-right:10px">05</span>Team capacity</h2>
+      <p style="font:400 13.5px/1.6 'IBM Plex Sans';color:oklch(44% 0.02 262);margin:0 0 8px;max-width:64ch">Per squad: <strong style="font-weight:600">5 engineers</strong> + 0.5 designer + 0.5 PM/TPM. The 24-month target runs <strong style="font-weight:600">two squads (10 engineers)</strong>; the table below is one squad’s allocation, which shifts by phase as focus moves from collection to product to scale.</p>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <div style="flex:none;width:150px"></div>
+        <sc-for list="{{ phases }}" as="p" hint-placeholder-count="4">
+          <div style="flex:1;text-align:center;font:600 9px 'IBM Plex Sans';color:{{ p.fg }};background:{{ p.bg }};padding:6px 4px;border-radius:6px">{{ p.name }}<div style="font:500 8px 'IBM Plex Mono';color:oklch(60% 0.02 262)">{{ p.quarters }}</div></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <sc-for list="{{ capacity }}" as="row" hint-placeholder-count="6">
+          <div style="display:flex;gap:6px;align-items:center">
+            <div style="flex:none;width:150px;font:500 11.5px 'IBM Plex Sans';color:oklch(38% 0.02 262)">{{ row.role }}</div>
+            <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="4">
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;height:34px;border-radius:6px;background:{{ c.bg }};border:1px solid {{ c.border }}">
+                <span style="font:600 12px 'IBM Plex Mono';color:{{ c.fg }}">{{ c.val }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:3px">
+          <div style="flex:none;width:150px;font:600 11.5px 'IBM Plex Sans';color:oklch(30% 0.02 262)">Total FTE</div>
+          <sc-for list="{{ capTotals }}" as="t" hint-placeholder-count="4">
+            <div style="flex:1;text-align:center;font:600 12px 'IBM Plex Mono';color:oklch(34% 0.02 262);padding:7px 0;background:oklch(97% 0.004 262);border-radius:6px">{{ t.v }}</div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="font:400 10.5px 'IBM Plex Sans';color:oklch(56% 0.02 262);margin-top:10px;display:flex;gap:16px;flex-wrap:wrap">
+        <span><span style="font-family:'IBM Plex Mono';color:oklch(45% 0.02 262)">D/P</span> Data/Platform</span>
+        <span><span style="font-family:'IBM Plex Mono';color:oklch(45% 0.02 262)">BE</span> Backend</span>
+        <span><span style="font-family:'IBM Plex Mono';color:oklch(45% 0.02 262)">FE</span> Frontend</span>
+        <span><span style="font-family:'IBM Plex Mono';color:oklch(45% 0.02 262)">Des</span> Designer</span>
+        <span><span style="font-family:'IBM Plex Mono';color:oklch(45% 0.02 262)">PM</span> PM/TPM</span>
+      </div>
+
+      <!-- 6 EXPEDITE -->
+      <h2 id="s6" style="font:600 21px 'Newsreader',serif;color:oklch(24% 0.02 262);margin:44px 0 8px"><span style="font:600 13px 'IBM Plex Mono';color:oklch(54% 0.10 70);margin-right:10px">06</span>Staffing scenarios &amp; timeline</h2>
+      <p style="font:400 13.5px/1.6 'IBM Plex Sans';color:oklch(44% 0.02 262);margin:0 0 16px;max-width:64ch">Three staffing levels against the same scope. Parallelization is modelled <strong style="font-weight:600">conservatively</strong> — the critical path (foundation → baseline → merge → impact) and cross-team integration cap the gains, so doubling the team does not halve the time. <strong style="font-weight:600">Two squads is the target: 24 months.</strong></p>
+
+      <!-- three phase timelines -->
+      <div style="border:1px solid oklch(91% 0.006 262);border-radius:11px;padding:18px 20px;background:oklch(98.6% 0.003 262)">
+        <div style="position:relative;height:16px;margin:0 0 6px 132px">
+          <sc-for list="{{ axisTicks }}" as="t" hint-placeholder-count="7">
+            <span style="position:absolute;left:{{ t.left }};transform:translateX(-50%);font:500 8.5px 'IBM Plex Mono';color:oklch(62% 0.02 262)">{{ t.label }}</span>
+          </sc-for>
+        </div>
+        <sc-for list="{{ scenarioTimelines }}" as="s" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:11px">
+            <div style="flex:none;width:122px">
+              <div style="display:flex;align-items:center;gap:6px"><span style="font:600 11.5px 'IBM Plex Sans';color:oklch(32% 0.02 262)">{{ s.label }}</span><sc-if value="{{ s.target }}" hint-placeholder-val="{{ true }}"><span style="font:600 7px 'IBM Plex Mono';letter-spacing:.04em;color:#fff;background:oklch(54% 0.10 70);padding:2px 5px;border-radius:3px">TARGET</span></sc-if></div>
+              <div style="font:500 9px 'IBM Plex Mono';color:oklch(60% 0.02 262)">{{ s.eng }} eng · {{ s.months }} mo</div>
+            </div>
+            <div style="flex:1;position:relative;height:30px;background:oklch(96% 0.004 262);border-radius:6px;overflow:hidden">
+              <sc-for list="{{ axisTicks }}" as="t" hint-placeholder-count="7">
+                <span style="position:absolute;left:{{ t.left }};top:0;bottom:0;width:1px;background:oklch(93.5% 0.006 262)"></span>
+              </sc-for>
+              <sc-for list="{{ s.segs }}" as="g" hint-placeholder-count="4">
+                <div style="position:absolute;left:{{ g.left }};width:{{ g.width }};top:3px;bottom:3px;background:{{ g.color }};border-radius:3px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+                  <sc-if value="{{ g.wide }}" hint-placeholder-val="{{ true }}"><span style="font:600 8px 'IBM Plex Mono';color:#fff;white-space:nowrap">{{ g.short }}</span></sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <div style="display:flex;gap:14px;margin:8px 0 0 132px;flex-wrap:wrap">
+          <sc-for list="{{ phaseLegend }}" as="p" hint-placeholder-count="4">
+            <span style="display:flex;align-items:center;gap:6px;font:500 9.5px 'IBM Plex Sans';color:oklch(48% 0.02 262)"><span style="width:9px;height:9px;border-radius:2px;background:{{ p.color }}"></span>{{ p.name }}</span>
+          </sc-for>
+          <span style="font:400 9.5px 'IBM Plex Mono';color:oklch(62% 0.02 262);margin-left:auto">months · axis to 40</span>
+        </div>
+      </div>
+
+      <!-- scenario detail cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-top:14px">
+        <sc-for list="{{ scenarios }}" as="s" hint-placeholder-count="3">
+          <div style="border:1px solid {{ s.cardBorder }};border-radius:11px;padding:15px 16px;background:{{ s.cardBg }}">
+            <div style="display:flex;align-items:baseline;gap:7px">
+              <span style="font:700 19px 'IBM Plex Sans';color:{{ s.fill }}">{{ s.months }}</span>
+              <span style="font:500 10px 'IBM Plex Mono';color:oklch(58% 0.02 262)">months</span>
+            </div>
+            <div style="font:600 12px 'IBM Plex Sans';color:oklch(30% 0.02 262);margin-top:4px">{{ s.label }} · {{ s.eng }} eng</div>
+            <div style="display:flex;flex-direction:column;gap:4px;margin:10px 0 9px">
+              <sc-for list="{{ s.squads }}" as="q" hint-placeholder-count="2">
+                <div style="display:flex;align-items:flex-start;gap:7px"><span style="width:7px;height:7px;border-radius:2px;background:{{ q.color }};flex:none;margin-top:3px"></span><span style="font:500 9.5px/1.35 'IBM Plex Sans';color:oklch(44% 0.02 262)">{{ q.name }}</span></div>
+              </sc-for>
+            </div>
+            <div style="font:400 10.5px/1.5 'IBM Plex Sans';color:oklch(50% 0.02 262);border-top:1px solid oklch(93% 0.006 262);padding-top:9px">{{ s.note }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="font:600 13px 'IBM Plex Sans';color:oklch(32% 0.02 262);margin:22px 0 10px">What actually moves the date</div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <sc-for list="{{ levers }}" as="l" hint-placeholder-count="3">
+          <div style="display:flex;gap:14px;border:1px solid oklch(92% 0.006 262);border-radius:10px;padding:14px 16px;align-items:center">
+            <div style="flex:none;width:96px;text-align:center"><div style="font:700 16px 'IBM Plex Sans';color:{{ l.color }}">{{ l.save }}</div><div style="font:500 8px 'IBM Plex Mono';text-transform:uppercase;letter-spacing:.04em;color:oklch(60% 0.02 262);margin-top:1px">{{ l.saveLabel }}</div></div>
+            <div style="flex:1;border-left:1px solid oklch(93% 0.006 262);padding-left:14px"><div style="font:600 12.5px 'IBM Plex Sans';color:oklch(32% 0.02 262)">{{ l.title }}</div><div style="font:400 11.5px/1.5 'IBM Plex Sans';color:oklch(48% 0.02 262);margin-top:3px">{{ l.body }}</div></div>
+          </div>
+        </sc-for>
+      </div>
+
+      <!-- 7 RISKS -->
+      <h2 id="s7" style="font:600 21px 'Newsreader',serif;color:oklch(24% 0.02 262);margin:44px 0 12px"><span style="font:600 13px 'IBM Plex Mono';color:oklch(54% 0.10 70);margin-right:10px">07</span>Delivery risks</h2>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <sc-for list="{{ risks }}" as="r" hint-placeholder-count="4">
+          <div style="display:flex;gap:12px;padding:11px 14px;border:1px solid oklch(92% 0.006 262);border-radius:9px;background:{{ r.bg }}">
+            <span style="font:600 9px 'IBM Plex Mono';letter-spacing:.04em;text-transform:uppercase;color:{{ r.tagColor }};flex:none;width:64px">{{ r.tag }}</span>
+            <div style="flex:1"><div style="font:600 12.5px 'IBM Plex Sans';color:oklch(32% 0.02 262)">{{ r.title }}</div><div style="font:400 12px/1.5 'IBM Plex Sans';color:oklch(48% 0.02 262);margin-top:3px">{{ r.body }}</div></div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="margin-top:44px;padding-top:18px;border-top:1px solid oklch(91% 0.006 262);display:flex;align-items:center;gap:10px">
+        <a href="Index - Throughline PRDs.dc.html" style="font:600 11.5px 'IBM Plex Sans';color:oklch(50% 0.02 262);text-decoration:none">← Overview</a>
+        <span style="font:500 11px 'IBM Plex Mono';color:oklch(60% 0.02 262);margin:0 auto">Throughline · Roadmap &amp; LOE</span>
+        <a href="Throughline - Final.dc.html" style="font:600 11.5px 'IBM Plex Sans';color:oklch(50% 0.13 190);text-decoration:none">Prototype ↗</a>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  // area colors
+  area() {
+    return {
+      found: 'oklch(55% 0.13 300)', collect: 'oklch(55% 0.14 252)', impact: 'oklch(57% 0.16 35)',
+      ui: 'oklch(52% 0.13 190)', scale: 'oklch(52% 0.13 155)',
+    };
+  }
+  // 0-indexed quarter -> left/width percent
+  bar(startIdx, span) { return { left: (startIdx * 12.5) + '%', width: (span * 12.5) + '%' }; }
+  mark(idx) { return { left: (idx * 12.5) + '%' }; }
+
+  renderVals() {
+    const A = this.area();
+    const toc = [
+      ['01', 'Assumptions', '#s1'], ['02', 'Timeline', '#s2'], ['03', 'Series vs parallel', '#s3'],
+      ['04', 'Level of effort', '#s4'], ['05', 'Team capacity', '#s5'], ['06', 'Staffing scenarios', '#s6'], ['07', 'Risks', '#s7'],
+    ].map(([n, label, href]) => ({ n, label, href }));
+
+    const statBand = [
+      { value: '24 mo', label: 'Horizon', color: A.found },
+      { value: '4 phases', label: 'Slice \u2192 domain \u2192 org \u2192 trust', color: A.collect },
+      { value: '10 eng', label: '2 squads · target plan', color: A.impact },
+      { value: '13', label: 'Workstreams', color: A.ui },
+    ];
+
+    const assumptions = [
+      { t: 'The prototype UI is a starting asset \u2014 altitude nav and the four lenses are designed, not greenfield.' },
+      { t: 'OpenLineage is the integration standard for runtime collectors (Spark, Dask).' },
+      { t: 'One business application is available as the vertical slice, with cooperative owners.' },
+      { t: 'A graph store and the LLM endpoint are provisioned in Phase 0, not built from scratch.' },
+      { t: 'Severity rules and confidence weights are calibrated against real historical incidents.' },
+    ];
+    const deps = [
+      { t: 'Repo, CI/CD, and schema-registry access for the slice\u2019s stack.' },
+      { t: 'Runtime instrumentation rights (Spark/Dask cluster config, OTel collector).' },
+      { t: 'Data catalog / service registry for entity identity + ownership.' },
+      { t: 'Security review for code access and PII classification handling.' },
+      { t: 'Platform sign-off to run blocking CI/CD gates on critical paths.' },
+    ];
+
+    const phases = [
+      { name: 'P0 · Slice', quarters: 'Q1\u2013Q2', flex: 2, bg: 'oklch(97% 0.02 300)', fg: 'oklch(45% 0.13 300)' },
+      { name: 'P1 · Domain', quarters: 'Q3\u2013Q4', flex: 2, bg: 'oklch(97% 0.02 252)', fg: 'oklch(45% 0.14 252)' },
+      { name: 'P2 · Org-wide', quarters: 'Q5\u2013Q6', flex: 2, bg: 'oklch(97% 0.02 155)', fg: 'oklch(42% 0.12 155)' },
+      { name: 'P3 · Trust', quarters: 'Q7\u2013Q8', flex: 2, bg: 'oklch(97% 0.02 70)', fg: 'oklch(45% 0.10 70)' },
+    ];
+    const quarters = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6', 'Q7', 'Q8'].map(label => ({ label }));
+
+    const areaLegend = [
+      { label: 'Foundation', color: A.found }, { label: 'Collection', color: A.collect },
+      { label: 'Impact', color: A.impact }, { label: 'UI/UX', color: A.ui }, { label: 'Scale & trust', color: A.scale },
+    ];
+
+    // gantt: group -> rows {id,label,color,startIdx,span,size}
+    const G = (id, label, color, startIdx, span, size) => ({ id, label, color, ...this.bar(startIdx, span), size });
+    const ganttGroups = [
+      { name: 'Foundation', color: A.found, bandBg: 'oklch(98.5% 0.01 300)', rows: [
+        G('F1', 'Graph store, identity & env', A.found, 0, 2, 'L'),
+      ]},
+      { name: 'Collection', color: A.collect, bandBg: 'oklch(98.5% 0.01 252)', rows: [
+        G('C1', 'Baseline: static + LLM', A.collect, 0, 2, 'XL'),
+        G('C2', 'Runtime: Spark + OTel', A.collect, 0, 2, 'L'),
+        G('C3', 'Merge, reconcile & confidence', A.collect, 1, 2, 'XL'),
+        G('C4', 'CI/CD diff', A.collect, 1, 2, 'M'),
+        G('C5', 'Dask + streaming lineage', A.collect, 2, 2, 'L'),
+      ]},
+      { name: 'Impact', color: A.impact, bandBg: 'oklch(98.5% 0.012 38)', rows: [
+        G('I1', 'Impact engine: simulate \u2192 blast \u2192 gate', A.impact, 1, 3, 'XL'),
+        G('I2', 'Path-aware impact & enforcement', A.impact, 3, 3, 'L'),
+      ]},
+      { name: 'UI / UX', color: A.ui, bandBg: 'oklch(98.5% 0.01 190)', rows: [
+        G('U1', 'Altitude nav + lineage lens', A.ui, 0, 3, 'XL'),
+        G('U2', 'Interactions + impact lenses', A.ui, 2, 2, 'L'),
+        G('U3', 'Provenance lens + search/facets', A.ui, 4, 2, 'L'),
+      ]},
+      { name: 'Scale & trust', color: A.scale, bandBg: 'oklch(98.5% 0.01 155)', rows: [
+        G('S1', 'Org-wide ingest, backfill & catalog', A.scale, 4, 2, 'XL'),
+        G('S2', 'Drift, decay, SLAs & self-serve', A.scale, 6, 2, 'L'),
+      ]},
+    ];
+
+    const milestones = [
+      { label: 'M1 Slice', color: 'oklch(45% 0.13 300)', ...this.mark(2) },
+      { label: 'M2 Gate', color: 'oklch(48% 0.16 35)', ...this.mark(4) },
+      { label: 'M3 GA', color: 'oklch(42% 0.12 155)', ...this.mark(6) },
+      { label: 'M4 Trust', color: 'oklch(45% 0.10 70)', ...this.mark(8) },
+    ];
+
+    const critPath = [
+      { title: 'Foundation: identity + graph store', why: 'Everything writes to it; canonical IDs unblock every collector.' },
+      { title: 'Baseline collection', why: 'Provides the superset of edges that runtime confirms and impact traverses.' },
+      { title: 'Merge & confidence', why: 'No trustworthy graph \u2014 and no gating \u2014 until edges reconcile and score.' },
+      { title: 'Impact engine', why: 'Depends on a confident graph; the gate depends on the engine.' },
+      { title: 'Org-wide scale', why: 'Calibrated on the slice/domain before it can widen safely.' },
+    ];
+    const parallelizable = [
+      { title: 'Runtime collectors', note: 'built alongside baseline; they meet at merge.' },
+      { title: 'UI / UX', note: 'starts Q1 on the prototype, ahead of full data.' },
+      { title: 'CI/CD diff', note: 'developed in parallel with the impact engine.' },
+      { title: 'Streaming + Dask', note: 'additive collectors, independent of the core loop.' },
+      { title: 'Catalog & backfill', note: 'integration work that runs beside scale-up.' },
+    ];
+
+    const sizeStyle = (s) => ({
+      S: { sizeFg: 'oklch(45% 0.02 262)', sizeBg: 'oklch(95% 0.004 262)' },
+      M: { sizeFg: 'oklch(42% 0.10 155)', sizeBg: 'oklch(94% 0.05 155)' },
+      L: { sizeFg: 'oklch(45% 0.10 70)', sizeBg: 'oklch(95% 0.06 80)' },
+      XL: { sizeFg: '#fff', sizeBg: 'oklch(57% 0.16 35)' },
+    }[s]);
+    const loeRows = [
+      ['F1', 'Graph store, identity & env', A.found, 'L', '8\u201312', 'D/P, BE', true],
+      ['C1', 'Baseline: static + LLM', A.collect, 'XL', '14\u201320', 'D/P, ML', true],
+      ['C2', 'Runtime: Spark + OTel', A.collect, 'L', '8\u201312', 'D/P', false],
+      ['C3', 'Merge, reconcile & confidence', A.collect, 'XL', '14\u201318', 'D/P, BE', true],
+      ['C4', 'CI/CD diff', A.collect, 'M', '5\u20138', 'BE', false],
+      ['C5', 'Dask + streaming lineage', A.collect, 'L', '8\u201312', 'D/P', false],
+      ['I1', 'Impact engine (3 modes)', A.impact, 'XL', '14\u201320', 'BE, D/P', true],
+      ['I2', 'Path-aware impact & enforcement', A.impact, 'L', '8\u201312', 'BE', false],
+      ['U1', 'Altitude nav + lineage lens', A.ui, 'XL', '14\u201320', 'FE, Des', false],
+      ['U2', 'Interactions + impact lenses', A.ui, 'L', '9\u201313', 'FE, Des', false],
+      ['U3', 'Provenance lens + search/facets', A.ui, 'L', '9\u201313', 'FE', false],
+      ['S1', 'Org-wide ingest, backfill & catalog', A.scale, 'XL', '14\u201320', 'D/P, BE', true],
+      ['S2', 'Drift, decay, SLAs & self-serve', A.scale, 'L', '9\u201313', 'D/P, FE', false],
+    ];
+    const loe = loeRows.map(([id, label, color, size, weeks, roles, crit]) => ({ id, label, color, size, weeks, roles, ...sizeStyle(size),
+      critLabel: crit ? 'CRIT' : '\u2014', critColor: crit ? 'oklch(55% 0.16 35)' : 'oklch(70% 0.02 262)' }));
+
+    // capacity per phase: D/P, BE, FE, Des, PM
+    const capRows = [
+      ['Data/Platform', [2, 2, 2.5, 2]],
+      ['Backend', [1, 1.5, 1, 1]],
+      ['Frontend', [1, 1, 1, 1.5]],
+      ['Designer', [0.5, 0.5, 0.5, 0.5]],
+      ['PM / TPM', [0.5, 0.5, 0.5, 0.5]],
+    ];
+    const cellBg = ['oklch(98% 0.012 300)', 'oklch(98% 0.012 252)', 'oklch(98% 0.012 155)', 'oklch(98% 0.012 70)'];
+    const cellBd = ['oklch(92% 0.02 300)', 'oklch(92% 0.02 252)', 'oklch(92% 0.02 155)', 'oklch(92% 0.02 70)'];
+    const cellFg = ['oklch(45% 0.13 300)', 'oklch(45% 0.14 252)', 'oklch(42% 0.12 155)', 'oklch(45% 0.10 70)'];
+    const capacity = capRows.map(([role, vals]) => ({ role, cells: vals.map((v, i) => ({ val: v, bg: cellBg[i], border: cellBd[i], fg: cellFg[i] })) }));
+    const capTotals = [0, 1, 2, 3].map(i => ({ v: capRows.reduce((a, r) => a + r[1][i], 0) }));
+
+    const levers = [
+      { save: '\u22122 qtrs', saveLabel: 'fastest win', color: A.collect, title: 'Add a 2nd squad in P1\u2013P2', body: 'Split into a collection squad (streaming, scale, backfill) and a product squad (impact, lenses). These are parallel, so a second team compresses the back half by ~2 quarters.' },
+      { save: '\u22121 qtr', saveLabel: 'moderate', color: A.ui, title: 'Dedicated ML engineer for extraction', body: 'The static+LLM baseline (C1) is on the critical path and ML-heavy. A specialist shortens it and frees data/platform for merge & scale.' },
+      { save: '0 qtrs', saveLabel: 'no effect', color: 'oklch(55% 0.02 262)', title: 'More people on the critical path', body: 'Foundation \u2192 merge \u2192 impact is sequential and integration-bound. Extra headcount here adds coordination cost without pulling in the date.' },
+    ];
+
+    // ---- staffing scenarios (conservative parallelization; 2 teams = 24mo target) ----
+    const AXIS = 40;
+    const sFill = { one: 'oklch(58% 0.13 30)', two: 'oklch(56% 0.12 70)', three: 'oklch(50% 0.12 155)' };
+    const qP = 'oklch(55% 0.14 252)', qD = 'oklch(56% 0.16 300)', qS = 'oklch(50% 0.12 155)';
+    const scenarios = [
+      { key: 'one', label: '1 squad', eng: 5, months: 38, fill: sFill.one, target: false,
+        cardBg: '#fff', cardBorder: 'oklch(92% 0.006 262)',
+        squads: [ { name: 'One team owns every workstream end to end', color: qP } ],
+        note: 'Near-fully serialized after the slice — collection, impact and UI queue behind one another. The realistic floor for five engineers.' },
+      { key: 'two', label: '2 squads', eng: 10, months: 24, fill: sFill.two, target: true,
+        cardBg: 'oklch(98.7% 0.012 70)', cardBorder: 'oklch(88% 0.04 70)',
+        squads: [ { name: 'Platform squad — collection + graph core', color: qP }, { name: 'Product squad — impact + UI', color: qD } ],
+        note: 'Two tracks run in parallel and meet at integration. Collection still gates impact, so the gain is ~14 months, not 19. This is the recommended plan.' },
+      { key: 'three', label: '3 squads', eng: 15, months: 19, fill: sFill.three, target: false,
+        cardBg: '#fff', cardBorder: 'oklch(92% 0.006 262)',
+        squads: [ { name: 'Platform squad — collection + graph', color: qP }, { name: 'Product squad — impact + UI', color: qD }, { name: 'Scale squad — connectors, scale-out, ops', color: qS } ],
+        note: 'A third squad parallelizes scale-out and connectors, but the foundation→merge→impact spine and added coordination cap the gain at ~5 months over two squads.' },
+    ];
+    const scenarioBars = scenarios.map(s => ({ label: s.label, eng: s.eng, months: s.months,
+      pct: (s.months / AXIS * 100).toFixed(1) + '%', fill: s.fill, target: s.target, notTarget: !s.target }));
+    const axisTicks = [0, 6, 12, 18, 24, 30, 36].map(m => ({ label: m, left: (m / AXIS * 100).toFixed(1) + '%' }));
+
+    // per-scenario phase timelines (months per phase P0..P3)
+    const PH = [
+      { name: 'P0 · Slice', short: 'P0', color: 'oklch(60% 0.13 300)' },
+      { name: 'P1 · Domain', short: 'P1', color: 'oklch(58% 0.14 252)' },
+      { name: 'P2 · Org-wide', short: 'P2', color: 'oklch(54% 0.12 155)' },
+      { name: 'P3 · Trust', short: 'P3', color: 'oklch(62% 0.10 70)' },
+    ];
+    const durs = { one: [9, 11, 11, 7], two: [6, 6, 6, 6], three: [4.5, 5, 5.5, 4] };
+    const scenarioTimelines = scenarios.map(s => {
+      let cum = 0;
+      const segs = durs[s.key].map((m, i) => { const seg = { name: PH[i].name, short: PH[i].short, color: PH[i].color,
+        left: (cum / AXIS * 100).toFixed(1) + '%', width: (m / AXIS * 100).toFixed(1) + '%', wide: m >= 4.5 }; cum += m; return seg; });
+      return { label: s.label, eng: s.eng, months: s.months, target: s.target, segs };
+    });
+    const phaseLegend = PH.map(p => ({ name: p.name, color: p.color }));
+
+    // ---- sizing methodology ----
+    const sizeScale = [
+      { t: 'S', wk: '2\u20134 wk', eg: 'one collector / one API', fg: 'oklch(42% 0.12 155)', bg: 'oklch(95% 0.03 155)' },
+      { t: 'M', wk: '5\u20139 wk', eg: 'schema + merge for a slice', fg: 'oklch(45% 0.13 252)', bg: 'oklch(95% 0.03 252)' },
+      { t: 'L', wk: '10\u201316 wk', eg: 'impact engine v1', fg: 'oklch(45% 0.13 300)', bg: 'oklch(95% 0.03 300)' },
+      { t: 'XL', wk: '18\u201326 wk', eg: 'org-wide scale-out', fg: 'oklch(50% 0.13 35)', bg: 'oklch(96% 0.03 38)' },
+    ];
+    const estMethods = [
+      { color: A.collect, title: '1 · Reference-class', body: 'Anchored to comparable builds — OpenLineage integrations, catalog connectors, observability collectors — and to this team\u2019s historical delivery velocity, not an idealized one.' },
+      { color: A.found, title: '2 · Bottom-up decomposition', body: 'Each workstream split into concrete tasks (collector, schema, API, tests, rollout, docs) and summed, so the size traces to a task list rather than a feeling.' },
+      { color: A.impact, title: '3 · Three-point (PERT)', body: 'Optimistic / most-likely / pessimistic per task, weighted to a low\u2013high band. The eng-week column is that band \u2014 the width is the uncertainty, surfaced not hidden.' },
+    ];
+    const bakedIn = [
+      { k: '\u00d70.7', title: 'Focus factor', body: 'a head counts as ~3.5 productive days/week after meetings, reviews, on-call and context-switching.' },
+      { k: '+ ramp', title: 'Onboarding', body: 'P0 is discounted for time to learn the domains, codebases and data contracts.' },
+      { k: '+20\u201330%', title: 'Integration tax', body: 'cross-team and critical-path items carry an explicit premium for coordination and rework.' },
+      { k: '+ buffer', title: 'Unknowns', body: 'research-heavy items (LLM extraction, identity resolution) carry a wider pessimistic tail.' },
+      { k: '\u21ba slice', title: 'Calibration gate', body: 'the P0 vertical slice re-baselines all later estimates before P1+ is committed \u2014 numbers tighten as evidence arrives.' },
+    ];
+    const aiUplift = [
+      { uplift: '30\u201345%', band: 'high', color: 'oklch(48% 0.13 155)', where: 'Boilerplate & scaffolding', note: 'OpenLineage adapters, API/CRUD, schema & migration code, unit tests, UI components, docs \u2014 codegen + pair-programming carry most of the weight, with light review.' },
+      { uplift: '10\u201320%', band: 'medium', color: 'oklch(52% 0.12 70)', where: 'Rules, queries & dashboards', note: 'AST/parser rules, GraphQL resolvers, matrix and chart views \u2014 AI drafts fast but every output needs careful correctness review.' },
+      { uplift: '~0%', band: 'minimal', color: 'oklch(54% 0.04 262)', where: 'Judgment & integration work', note: 'Identity-resolution correctness, distributed-systems reliability, confidence-model calibration, gate rollout & stakeholder trust, security review \u2014 consensus- and reliability-bound, and these dominate the critical path.' },
+    ];
+
+    const risks = [
+      { tag: 'Risk', title: 'Slice not representative', body: 'If the vertical slice is too simple, calibration won\u2019t generalize. Pick a slice with real cross-app and streaming dependencies.', bg: 'oklch(98.5% 0.02 32)', tagColor: 'oklch(56% 0.13 30)' },
+      { tag: 'Risk', title: 'Identity resolution underestimated', body: 'Reconciling IDs across static/Spark/OTel (C3) is the classic time-sink and sits on the critical path. Buffer it; prototype early.', bg: 'oklch(98.5% 0.02 32)', tagColor: 'oklch(56% 0.13 30)' },
+      { tag: 'Risk', title: 'Collector coverage sprawl', body: 'Each new language/engine is incremental cost. Sequence by the slice\u2019s stack first; resist org-wide coverage before P2.', bg: 'oklch(98.5% 0.02 32)', tagColor: 'oklch(56% 0.13 30)' },
+      { tag: 'Open', title: 'Gate enforcement readiness', body: 'Turning on blocking gates (P2) needs org buy-in and a low false-positive rate. May slip a quarter if trust isn\u2019t earned on the slice.', bg: 'oklch(98.5% 0.012 252)', tagColor: 'oklch(50% 0.10 252)' },
+    ];
+
+    return { toc, statBand, assumptions, deps, phases, quarters, areaLegend, ganttGroups, milestones,
+      critPath, parallelizable, loe, loeTotal: '\u2248 135\u2013195 eng-weeks', sizeScale, estMethods, bakedIn, aiUplift, capacity, capTotals, scenarios, scenarioBars, scenarioTimelines, phaseLegend, axisTicks, levers, risks };
+  }
+}
+</script>
+</body>
+</html>
