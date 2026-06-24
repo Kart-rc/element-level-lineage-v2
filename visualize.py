@@ -9,7 +9,7 @@ import time
 
 PORT = 8000
 # Target directory containing the html files
-DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "deliverables", "latest_source", "Data Lineage Impact Platform-4")
+DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "deliverables", "latest_source", "Data Lineage Impact Platform-5")
 
 if not os.path.exists(DIRECTORY):
     # Fallback to root directory if the folder structure changes
