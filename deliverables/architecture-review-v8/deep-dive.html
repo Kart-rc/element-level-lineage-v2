@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Throughline — Subsystem Deep-Dive (Collection · Fusion · Impact · PR Flow)</title>
+<style>
+  :root{
+    --bg:#fafbfc; --panel:#ffffff; --ink:#1a2330; --muted:#5b6878; --line:#dde3ea;
+    --blue:#1f5eff; --blue-bg:#eef3ff; --purple:#7b3ff2; --purple-bg:#f4efff;
+    --orange:#e07400; --orange-bg:#fff4e5; --teal:#0e8a7d; --teal-bg:#e7f6f4;
+    --red:#c8322b; --red-bg:#fdecea; --amber:#b07c00; --amber-bg:#fff8e1; --green:#1e7d3c; --green-bg:#e9f6ec;
+    --mono:"IBM Plex Mono","SFMono-Regular",Consolas,Menlo,monospace;
+    --sans:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#101418; --panel:#171d24; --ink:#e6ebf1; --muted:#94a1b0; --line:#2a333e;
+      --blue-bg:#14203c; --purple-bg:#241a3d; --orange-bg:#33240e; --teal-bg:#0f2926;
+      --red-bg:#391412; --amber-bg:#32280d; --green-bg:#12301c; }
+  }
+  *{box-sizing:border-box; margin:0}
+  body{background:var(--bg); color:var(--ink); font:15px/1.6 var(--sans); padding-bottom:80px}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 20px}
+  header.hero{border-bottom:1px solid var(--line); background:var(--panel); padding:34px 0 26px}
+  .kicker{font:600 11px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  h1{font-size:27px; line-height:1.25; margin:10px 0 8px; letter-spacing:-.01em}
+  .sub{color:var(--muted); max-width:70ch}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  .chip{font:500 12px/1 var(--mono); padding:6px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); background:var(--bg)}
+  nav.toc{position:sticky; top:0; z-index:9; background:var(--panel); border-bottom:1px solid var(--line)}
+  nav.toc .wrap{display:flex; gap:4px; overflow-x:auto; padding-top:8px; padding-bottom:8px}
+  nav.toc a{flex:0 0 auto; text-decoration:none; color:var(--muted); font:600 12.5px/1 var(--sans); padding:7px 11px; border-radius:8px}
+  nav.toc a:hover{color:var(--ink); background:var(--bg)}
+  nav.toc a b{font-family:var(--mono); margin-right:6px}
+  nav.toc a.c1 b{color:var(--blue)} nav.toc a.c2 b{color:var(--purple)} nav.toc a.c3 b{color:var(--orange)} nav.toc a.c4 b{color:var(--teal)} nav.toc a.c5 b{color:var(--green)}
+  section{padding:38px 0 8px}
+  .band{display:inline-flex; align-items:center; gap:8px; font:700 12px/1 var(--mono); letter-spacing:.12em; text-transform:uppercase; padding:6px 12px; border-radius:8px; margin-bottom:12px}
+  .band.blue{color:var(--blue); background:var(--blue-bg)} .band.purple{color:var(--purple); background:var(--purple-bg)}
+  .band.orange{color:var(--orange); background:var(--orange-bg)} .band.teal{color:var(--teal); background:var(--teal-bg)} .band.green{color:var(--green); background:var(--green-bg)}
+  h2{font-size:21px; margin:2px 0 6px; letter-spacing:-.01em}
+  h3{font-size:15.5px; margin:26px 0 10px}
+  p.lead{color:var(--muted); max-width:78ch; margin-bottom:18px}
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px}
+  /* --- flow diagrams --- */
+  .flowrow{display:flex; align-items:stretch; gap:0; flex-wrap:wrap}
+  .fnode{flex:1 1 150px; min-width:150px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; position:relative}
+  .fnode .t{font:700 12.5px/1.35 var(--sans)}
+  .fnode .d{font:400 11.5px/1.45 var(--sans); color:var(--muted); margin-top:4px}
+  .fnode .n{position:absolute; top:-9px; left:10px; font:700 10px/1 var(--mono); background:var(--ink); color:var(--bg); border-radius:6px; padding:3px 6px}
+  .arrow{flex:0 0 26px; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:17px}
+  .lane{border-left:3px solid var(--line); padding:2px 0 2px 14px; margin:10px 0}
+  .lane.blue{border-color:var(--blue)} .lane.purple{border-color:var(--purple)} .lane.orange{border-color:var(--orange)} .lane.teal{border-color:var(--teal)}
+  .lane .lt{font:700 11px/1 var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:12px; margin:14px 0}
+  .card{background:var(--panel); border:1px solid var(--line); border-left-width:4px; border-radius:10px; padding:12px 14px}
+  .card.blue{border-left-color:var(--blue)} .card.purple{border-left-color:var(--purple)} .card.orange{border-left-color:var(--orange)}
+  .card.teal{border-left-color:var(--teal)} .card.green{border-left-color:var(--green)} .card.red{border-left-color:var(--red)} .card.amber{border-left-color:var(--amber)}
+  .card h4{font-size:13.5px; margin-bottom:4px}
+  .card p{font-size:12.5px; color:var(--muted)}
+  .card .tag{display:inline-block; font:600 10px/1 var(--mono); letter-spacing:.08em; text-transform:uppercase; padding:3px 7px; border-radius:6px; margin-bottom:7px}
+  .tag.blue{color:var(--blue); background:var(--blue-bg)} .tag.purple{color:var(--purple); background:var(--purple-bg)}
+  .tag.orange{color:var(--orange); background:var(--orange-bg)} .tag.teal{color:var(--teal); background:var(--teal-bg)} .tag.green{color:var(--green); background:var(--green-bg)}
+  /* --- pipeline (vertical) --- */
+  .pipe{display:flex; flex-direction:column; gap:0; margin:14px 0}
+  .stage{display:flex; gap:14px; align-items:flex-start}
+  .stage .num{flex:0 0 30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font:700 12px/1 var(--mono); color:#fff; background:var(--purple); margin-top:2px}
+  .stage .body{flex:1; padding-bottom:16px; border-left:2px dashed var(--line); margin-left:-22px; padding-left:36px}
+  .stage:last-child .body{border-left-color:transparent}
+  .stage .body b{font-size:13.5px}
+  .stage .body span{display:block; font-size:12.5px; color:var(--muted)}
+  /* --- tables --- */
+  .tblwrap{overflow-x:auto; margin:14px 0; border:1px solid var(--line); border-radius:10px}
+  table{border-collapse:collapse; width:100%; min-width:640px; background:var(--panel); font-size:12.5px}
+  th{font:700 11px/1.3 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); background:var(--bg)}
+  td{padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  code, .mono{font:12px/1.5 var(--mono)}
+  pre{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow-x:auto; font:12px/1.55 var(--mono); margin:10px 0}
+  .badge{display:inline-block; font:700 10.5px/1 var(--mono); padding:4px 8px; border-radius:6px}
+  .b-verified{color:var(--green); background:var(--green-bg)} .b-probable{color:var(--amber); background:var(--amber-bg)}
+  .b-inferred{color:var(--muted); background:var(--bg); border:1px dashed var(--line)}
+  .b-break{color:var(--red); background:var(--red-bg)} .b-warn{color:var(--amber); background:var(--amber-bg)}
+  .b-review{color:var(--purple); background:var(--purple-bg)} .b-safe{color:var(--green); background:var(--green-bg)}
+  .b-retired{color:var(--muted); background:var(--bg); border:1px solid var(--line); text-decoration:line-through}
+  /* --- hop chain --- */
+  .hops{display:flex; flex-wrap:wrap; gap:0; align-items:stretch; margin:14px 0}
+  .hop{flex:1 1 150px; min-width:150px; background:var(--panel); border:1px solid var(--line); border-top-width:4px; border-radius:10px; padding:10px 12px}
+  .hop .sys{font:600 10px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+  .hop .el{font:700 12.5px/1.3 var(--mono); margin:5px 0}
+  .hop.src{border-top-color:var(--blue)} .hop.warn{border-top-color:var(--amber)} .hop.review{border-top-color:var(--purple)} .hop.break{border-top-color:var(--red)}
+  /* --- callouts --- */
+  .callout{border:1px solid var(--line); border-left:4px solid var(--teal); background:var(--panel); border-radius:10px; padding:12px 16px; margin:14px 0; font-size:13px}
+  .callout.orange{border-left-color:var(--orange)} .callout.purple{border-left-color:var(--purple)} .callout.red{border-left-color:var(--red)}
+  .callout b{display:block; margin-bottom:3px}
+  /* --- tabs --- */
+  .tabs{display:flex; gap:6px; margin:16px 0 0}
+  .tabs button{font:600 12.5px/1 var(--sans); color:var(--muted); background:var(--panel); border:1px solid var(--line); border-bottom:none; border-radius:10px 10px 0 0; padding:10px 16px; cursor:pointer}
+  .tabs button.on{color:var(--ink); background:var(--bg); border-color:var(--line); box-shadow:inset 0 3px 0 var(--teal)}
+  .tabpanel{border:1px solid var(--line); border-radius:0 10px 10px 10px; background:var(--bg); padding:16px}
+  .tabpanel[hidden]{display:none}
+  details{border:1px solid var(--line); border-radius:10px; background:var(--panel); padding:10px 16px; margin:10px 0}
+  summary{cursor:pointer; font:600 13px/1.4 var(--sans)}
+  footer{margin-top:44px; border-top:1px solid var(--line); padding-top:18px; color:var(--muted); font-size:12.5px}
+  footer a{color:var(--teal)}
+  .legend{display:flex; flex-wrap:wrap; gap:10px; margin:10px 0}
+  .legend span{font:500 11.5px/1 var(--mono)}
+  @media (max-width:640px){ .arrow{transform:rotate(90deg); flex-basis:100%; padding:2px 0} h1{font-size:22px} }
+</style>
+</head>
+<body>
+
+<header class="hero"><div class="wrap">
+  <div class="kicker">Throughline · Architecture Review v8 · Companion to 05-subsystem-deep-dive.md</div>
+  <h1>Subsystem Deep-Dive: Collection → Fusion → Impact → PR Flow</h1>
+  <p class="sub">How seven collection mechanisms become one confidence-scored column-level graph, and how that graph answers "what breaks?" — before the merge. Decisions: ADR-001…019 · Normative specs: HLD §1–§13 · Running example: the Orders slice from the v8 Worked Example.</p>
+  <div class="chips">
+    <span class="chip">design point 2,000 services</span><span class="chip">ceiling 10,000</span>
+    <span class="chip">PostgreSQL 16 + CSR projection</span><span class="chip">Kafka · Iceberg · OPA · sqlglot</span>
+    <span class="chip">bands: Verified ≥85 · Probable 65–84 · Inferred &lt;65</span>
+  </div>
+</div></header>
+
+<nav class="toc"><div class="wrap">
+  <a class="c1" href="#collection"><b>§1</b>Collection</a>
+  <a class="c2" href="#fusion"><b>§2</b>Fusion engine</a>
+  <a class="c3" href="#impact"><b>§3</b>Impact analysis</a>
+  <a class="c4" href="#prflow"><b>§4</b>PR flow</a>
+  <a class="c5" href="#compose"><b>§5</b>Composition</a>
+</div></nav>
+
+<div class="wrap">
+
+<!-- ============ 1 COLLECTION ============ -->
+<section id="collection">
+  <span class="band blue">§1 · Lineage collection</span>
+  <h2>Seven mechanisms, one gateway, zero mutual trust</h2>
+  <p class="lead">Three mechanisms produce the <b>baseline</b> (what the code <i>should</i> do), three produce <b>runtime truth</b> (what actually <i>happened</i>), one produces <b>authoritative types</b>. None trusts another — the fusion engine reconciles them.</p>
+
+  <div class="lane blue"><span class="lt">Baseline — what code should do</span>
+    <div class="cards">
+      <div class="card blue"><span class="tag blue">static + llm</span><h4>Static + LLM analyzer</h4><p>Repo scan per PR + nightly. sqlglot AST column lineage for SQL/dbt; pinned LLM (temp 0) for DataFrame chains &amp; dynamic SQL. Golden-set gated: precision ≥90% or LLM-only edges cap at Inferred. Content-hash cache.</p></div>
+      <div class="card blue"><span class="tag blue">declared</span><h4>Lineage contracts (lineage.yaml)</h4><p>The escape hatch for uncovered systems (stored procs, vendor ETL). Owner-attributed, schema-validated, 180-day TTL. Capped at Probable 75 until runtime-corroborated.</p></div>
+      <div class="card blue"><span class="tag blue">ci diff</span><h4>CI diff service</h4><p>Re-derives lineage for changed paths on every PR; keeps the baseline current and feeds the gate (§4).</p></div>
+    </div></div>
+
+  <div class="lane purple"><span class="lt">Runtime — what actually happened</span>
+    <div class="cards">
+      <div class="card purple"><span class="tag purple">spark · dask · airflow</span><h4>OpenLineage listeners</h4><p>RunEvents with column-lineage facets on every job run. The signals that promote edges from Inferred to Verified.</p></div>
+      <div class="card purple"><span class="tag purple">otel</span><h4>OTel edge-aggregating collector</h4><p>Raw spans never leave the collector tier: folded into per-edge observations, flushed hot/5min · warm/hourly · cold/on-fire. 732k obs/day at 2k — vs ~8.6 <b>billion</b> raw spans. The GAP-D5 correction.</p></div>
+    </div></div>
+
+  <div class="lane teal"><span class="lt">Type truth</span>
+    <div class="cards">
+      <div class="card teal"><span class="tag teal">registry</span><h4>Schema-registry sync</h4><p>Confluent SR subjects, warehouse INFORMATION_SCHEMA snapshots, repo OpenAPI/protobuf. Registry wins all type conflicts; registry-vs-runtime drift becomes an owner finding, never silently reconciled.</p></div>
+    </div></div>
+
+  <h3>Flow into the platform</h3>
+  <div class="flowrow">
+    <div class="fnode"><div class="t">7 collection mechanisms</div><div class="d">baseline · runtime · types</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="t">Ingestion gateway</div><div class="d">workload-identity authN · schema validation · <b>metadata-only enforced</b> (value fields structurally rejected)</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="t">Kafka</div><div class="d">partition = hash(entity URN) → per-entity ordering</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="t">Iceberg raw archive</div><div class="d">append-only Parquet · replay &amp; backfill source · 13-month retention</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="t">Fusion engine</div><div class="d">§2</div></div>
+  </div>
+
+  <details><summary>Per-collector contract (observes · emits · cadence · confidence role · failure mode)</summary>
+  <div class="tblwrap"><table>
+    <tr><th>Collector</th><th>Observes</th><th>Emits</th><th>Cadence</th><th>Confidence role</th><th>Failure mode → behavior</th></tr>
+    <tr><td>Static + LLM</td><td>source, SQL, DAGs, API specs</td><td>candidate edges (transform, guard, codeRef)</td><td>per PR + nightly</td><td>baseline (30/18) · capped ≤64 alone</td><td>parser gap → <code>unexplained</code> triage; LLM below gate → capped Inferred</td></tr>
+    <tr><td>Spark/Dask/Airflow OL</td><td>job runs, column facets</td><td>confirmed edges + run stats</td><td>per run</td><td>runtime (30/26) · promotes to Verified</td><td>listener down → edges age per lifecycle, heartbeat alert</td></tr>
+    <tr><td>OTel collector</td><td>service calls</td><td>per-edge observations (latency, errors, freq)</td><td>5m / 1h / on-fire</td><td>runtime (22) · confirms interactions + path frequency</td><td>pipeline loss → edges go stale, never silently deleted</td></tr>
+    <tr><td>Registry sync</td><td>subjects, schemas, specs</td><td>schema-version events</td><td>poll + change events</td><td>type truth (overrides all)</td><td>sync lag → drift findings pause; staleness SLI</td></tr>
+    <tr><td>Declared contracts</td><td>lineage.yaml</td><td>declared edges + owner + TTL</td><td>on commit + TTL sweep</td><td>declared (25) · cap 75 · TTL decay</td><td>expired attestation → decay to Inferred, owner notified</td></tr>
+    <tr><td>CI diff</td><td>PR deltas</td><td>baseline deltas + gate inputs</td><td>per PR</td><td>refreshes baseline</td><td>timeout → gate fail-open + warn</td></tr>
+  </table></div></details>
+</section>
+
+<!-- ============ 2 FUSION ============ -->
+<section id="fusion">
+  <span class="band purple">§2 · Fusion engine</span>
+  <h2>From "an event arrived" to "the graph changed" — one idempotent pipeline</h2>
+  <p class="lead">Stages 4–7 are where six signals become one trustworthy edge: deterministic identity, per-attribute conflict rules, calibrated confidence. Every write is append-only — any past graph state is reconstructable.</p>
+
+  <div class="pipe">
+    <div class="stage"><div class="num">1</div><div class="body"><b>Gateway</b><span>authN · schema validation · metadata-only enforcement (reject → DLQ, SLI-alerted)</span></div></div>
+    <div class="stage"><div class="num">2</div><div class="body"><b>Raw archive</b><span>Kafka → Iceberg, append-only. The replay/backfill source: fusion bugs are repairable by shadow rebuild + atomic snapshot swap.</span></div></div>
+    <div class="stage"><div class="num">3</div><div class="body"><b>Normalize</b><span>wire format → assertion; URN construction (ADR-005): <code>urn:tl:{env}:{type}:{authority}:{path}#{fragment}</code></span></div></div>
+    <div class="stage"><div class="num">4</div><div class="body"><b>Identity resolution (ADR-006)</b><span>exact URN → alias registry → normalization rules → human-confirmed suggestions. <b>Never probabilistic auto-merge</b> — a wrong merge silently poisons every downstream impact answer.</span></div></div>
+    <div class="stage"><div class="num">5</div><div class="body"><b>Observation upsert</b><span>idempotency key (source, runId, eventId) — retries can never double-count into confidence; event-time merge — late events never overwrite newer state.</span></div></div>
+    <div class="stage"><div class="num">6</div><div class="body"><b>Conflict resolution (ADR-007)</b><span>per-attribute precedence: existence runtime&gt;declared&gt;static&gt;llm · transform static&gt;llm · <b>types: registry wins</b> · ownership never LLM-only. Cold-path rule: asserted-but-unobserved edges stay visible, always Possible in impact.</span></div></div>
+    <div class="stage"><div class="num">7</div><div class="body"><b>Confidence scoring (ADR-008)</b><span>agreement × recency; baseline-only cap 64; declared cap 75; conflict −10. Bands (Verified ≥85 · Probable 65–84 · Inferred &lt;65) move by quarterly calibration; model version pinned in every snapshot.</span></div></div>
+    <div class="stage"><div class="num">8</div><div class="body"><b>Lifecycle (ADR-009)</b><span>active → stale (stream 7d · batch 35d) → retired (tombstones: OL delete, CI file deletion, registry delete, attestation). "Gone" and "quiet" are different facts.</span></div></div>
+    <div class="stage"><div class="num">9</div><div class="body"><b>Append-only graph write (ADR-004)</b><span>close old version, open new — never UPDATE. Snapshots are logical watermarks; <code>AS OF</code> queries reproduce any past state.</span></div></div>
+    <div class="stage"><div class="num">10</div><div class="body"><b>CDC fan-out</b><span>PostgreSQL logical replication → CSR traversal projection (22 MB @2k) · search index · roll-ups · cache invalidation.</span></div></div>
+  </div>
+
+  <h3>Worked example — one edge's life <span class="mono">orders.events#total_amount → orders_raw#total_amount</span></h3>
+  <div class="cards">
+    <div class="card blue"><span class="tag blue">T0 · baseline build</span><h4>Born static + LLM <span class="badge b-inferred">INFERRED 61</span></h4>
+      <p>Analyzer parses the Kafka producer + Avro schema; LLM maps <code>order.totalAmount()</code> → <code>event.total_amount</code>. Guard <code>order.status=='CONFIRMED'</code>, codeRef <code>OrderService.java:88</code>, frequency <i>never-observed</i>. Baseline-only cap: can never gate.</p></div>
+    <div class="card green"><span class="tag green">T1 · Spark run confirms</span><h4>Runtime-corroborated <span class="badge b-verified">VERIFIED 96</span></h4>
+      <p>OpenLineage COMPLETE with column facet joins the same entityIds via the deterministic identity chain. Frequency <i>hot</i>, rowsOut 124,903. Both observations retained in <code>edge_observations</code> — nothing overwritten.</p></div>
+    <div class="card amber"><span class="tag orange">T2 · signals disagree</span><h4>Registry vs stale static <span class="badge b-warn">CONFLICT −10</span></h4>
+      <p>Registry says <code>decimal(12,2)</code>; a stale static assertion says <code>int</code>. Matrix: <b>registry wins the type</b>; edge flagged <code>conflict</code>; triage event. Disagreement is surfaced, never averaged away.</p></div>
+    <div class="card red"><span class="tag orange">T3 · pipeline deleted</span><h4>Explicit retirement <span class="badge b-retired">RETIRED</span></h4>
+      <p>CI diff sees the landing job's file deleted → tombstone. Edge leaves impact traversal; queryable 13 months as "was connected until 2027-01". Under v8's decay-only model this was indistinguishable from a quiet quarter-end job.</p></div>
+  </div>
+</section>
+
+<!-- ============ 3 IMPACT ============ -->
+<section id="impact">
+  <span class="band orange">§3 · Impact analysis flow</span>
+  <h2>Anchor → pinned snapshot → budgeted traversal → tiered report</h2>
+  <p class="lead">Every traversal is pinned to a snapshot — re-running a report years later reproduces it exactly. Budget exhaustion is visible (<code>truncated + cursor</code>), never a silently short answer. Hub columns serve from precomputed blast radii.</p>
+
+  <div class="flowrow">
+    <div class="fnode"><div class="n">1</div><div class="t">Anchor</div><div class="d">changed element → entityId (PR diff · simulate form · canvas)</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="n">2</div><div class="t">Pin snapshot</div><div class="d">{snapshotId, policyVersion, confidenceModelVersion}</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="n">3</div><div class="t">Traverse</div><div class="d">BFS on CSR · visited-set cycles · SCC collapse · budget 5k nodes / 50k visits / depth 10</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="n">4</div><div class="t">Classify</div><div class="d">change-type × usage matrix (v8, retained) · worst severity per path</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="n">5</div><div class="t">Tier</div><div class="d">all-Verified/Probable path → Confirmed · any Inferred hop → Possible · cold paths always included</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="n">6</div><div class="t">Report</div><div class="d">summary · confirmed[] · possible[] · coverage · pinned versions — persisted &amp; reproducible</div></div>
+  </div>
+
+  <h3>Worked example — <span class="mono">total_amount int → decimal</span>, six hops across two teams</h3>
+  <div class="hops">
+    <div class="hop src"><div class="sys">orders service · source</div><div class="el">total_amount</div><span class="badge b-safe">ANCHOR</span></div>
+    <div class="hop warn"><div class="sys">orders_raw · s3/warehouse</div><div class="el">total_amount</div><span class="badge b-warn">WARNING</span> <span class="badge b-verified">CONFIRMED</span></div>
+    <div class="hop warn"><div class="sys">fct_orders · spark</div><div class="el">net_amount</div><span class="badge b-warn">WARNING</span> <span class="badge b-verified">CONFIRMED</span></div>
+    <div class="hop warn"><div class="sys">churn_features · dask</div><div class="el">avg_order_value</div><span class="badge b-warn">WARNING</span> <span class="badge b-verified">CONFIRMED</span></div>
+    <div class="hop review"><div class="sys">churn model · ml</div><div class="el">feature: avg_order_value</div><span class="badge b-review">REVIEW</span> <span class="badge b-inferred">POSSIBLE</span></div>
+    <div class="hop break"><div class="sys">partner export · sftp fixed-width</div><div class="el">layout width</div><span class="badge b-break">BREAKING</span> <span class="badge b-inferred">POSSIBLE · cold path</span></div>
+  </div>
+
+  <div class="callout orange"><b>The row that justifies the cold-path rule</b>
+  The fixed-width partner export — the one consumer that actually <i>breaks</i> — is a declared, never-observed edge. Under v8's unwritten cold-path behavior it risked being dropped as low-confidence. The ADR-007 invariant (<i>low confidence ≠ low risk</i>) is what keeps it on the report: static/declared edges always surface as Possible.</div>
+
+  <details><summary>Response shape (simulate API)</summary>
+<pre>POST /v1/impact/simulate
+{ "target": "urn:tl:prod:field:kafka.main:orders.events#total_amount",
+  "change": { "type": "type_change", "from": "int", "to": "decimal" } }
+
+200 OK
+{ "summary":   { "services": 3, "datasets": 2, "breaking": 1 },
+  "confirmed": [ { "asset": "...orders_raw#total_amount",  "severity": "warning", "freq": "hot" },
+                 { "asset": "...fct_orders#net_amount",     "severity": "warning", "freq": "hot" },
+                 { "asset": "...churn_features#avg_order_value", "severity": "warning", "freq": "hot" } ],
+  "possible":  [ { "asset": "ChurnModel.feature:avg_order_value", "severity": "review" },
+                 { "asset": "...partner_export", "severity": "breaking", "note": "cold path · declared" } ],
+  "coverage":  { "paths_confirmed": 3, "paths_total": 4 },
+  "truncated": false,
+  "pinned":    { "snapshot_id": "01J...", "policy_version": "rev-42", "confidence_model_version": "cal-2026Q2" } }</pre></details>
+</section>
+
+<!-- ============ 4 PR FLOW ============ -->
+<section id="prflow">
+  <span class="band teal">§4 · PR flow (CI/CD gate)</span>
+  <h2>Webhook → manifest → diff → impact → policy → status check, in 30 seconds</h2>
+  <p class="lead">The gate's authority is earned mechanically: observe → warn → block per domain, a waiver workflow with real approvers and expiry, and a circuit-breaker that demotes any rule crying wolf. On platform failure the gate <b>fails open with a warn annotation</b> — Throughline being down must never mean the org cannot merge.</p>
+
+  <div class="pipe">
+    <div class="stage"><div class="num" style="background:var(--teal)">1</div><div class="body"><b>Webhook (~1s)</b><span>PR opened/updated</span></div></div>
+    <div class="stage"><div class="num" style="background:var(--teal)">2</div><div class="body"><b>Manifest resolution (~2s)</b><span><code>throughline.yaml</code> maps changed paths → service URNs. Monorepo-safe; unmapped paths → visible warn, never a silent skip.</span></div></div>
+    <div class="stage"><div class="num" style="background:var(--teal)">3</div><div class="body"><b>Lineage re-derivation (~5s)</b><span>sqlglot + LLM cache on changed files → schema deltas <b>and</b> codeRef intersections (logic-only changes — the GAP-C1 fix).</span></div></div>
+    <div class="stage"><div class="num" style="background:var(--teal)">4</div><div class="body"><b>Impact on pinned snapshot (~10s)</b><span>§3 flow; decision is reproducible and appealable forever.</span></div></div>
+    <div class="stage"><div class="num" style="background:var(--teal)">5</div><div class="body"><b>OPA policy (~2s)</b><span>Rego packages per domain, stewards own them via PR; ramp stage is a policy input; <b>Possible tier can never block</b> (v8 FR-I6 retained).</span></div></div>
+    <div class="stage"><div class="num" style="background:var(--teal)">6</div><div class="body"><b>Status check + comment (~10s slack)</b><span>impact table, coverage line, deep link to blast radius. p95 budget 30s end-to-end · timeout 120s → fail-open + warn.</span></div></div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="on" id="tabA" role="tab" aria-selected="true" aria-controls="panelA" onclick="tab('A')">Example A — type-change PR (#482)</button>
+    <button id="tabB" role="tab" aria-selected="false" aria-controls="panelB" onclick="tab('B')">Example B — rename PR (#515)</button>
+  </div>
+  <div class="tabpanel" id="panelA" role="tabpanel" aria-labelledby="tabA">
+    <p style="font-size:13px"><b><code>setTotalAmount(int cents)</code> → <code>setTotalAmount(BigDecimal)</code></b>, plus a new <code>currency</code> field.</p>
+    <ol style="font-size:13px; padding-left:20px; margin:10px 0; display:grid; gap:6px">
+      <li>Manifest maps <code>services/orders/**</code> → <code>svc:…orders-svc</code>; diff finds <code>total_amount int→decimal</code> changed, <code>currency</code> added.</li>
+      <li>Impact: 3 Confirmed warnings + 1 Possible review + 1 Possible <b>breaking</b> (partner export, cold path).</li>
+      <li>Domain <code>revenue</code> is in <b>warn</b> ramp stage → OPA: <span class="badge b-warn">WARN</span>. Nothing <i>Confirmed</i> is breaking, and Possible can never block.</li>
+      <li>Non-blocking status check + comment: impact table, "3 of 4 paths runtime-confirmed", deep link. Developer merges with eyes open; the partner-export owner is notified.</li>
+    </ol>
+  </div>
+  <div class="tabpanel" id="panelB" role="tabpanel" aria-labelledby="tabB" hidden>
+    <p style="font-size:13px"><b><code>normalize_orders.sql</code>: <code>o.total_amount as net_amount</code> → <code>as net_revenue</code></b></p>
+    <ol style="font-size:13px; padding-left:20px; margin:10px 0; display:grid; gap:6px">
+      <li>Diff: <code>fct_orders</code> — <code>net_amount</code> removed, <code>net_revenue</code> added (sqlglot sees the rename in the AST).</li>
+      <li>Impact on pinned snapshot: <code>churn_features#avg_order_value</code> reads the old name — <b>Confirmed breaking</b> (hot, Dask-verified; rename × join-transform = break).</li>
+      <li>Domain is in <b>block</b> stage → OPA: <span class="badge b-break">BLOCK</span> with rule id, owning team (<code>ml-platform</code>), and two exits: coordinate the rename in the same change, or obtain a waiver.</li>
+      <li>Waiver rules: approver must be the <b>impacted owner or domain steward</b> (never the PR author), expiry ≤90 days, fully audited.</li>
+      <li><b>Counterfactual:</b> had the PR changed the <i>formula</i> for <code>net_amount</code> with no rename, v8's schema-diff-only gate stays silent; here the codeRef intersection emits the warn-tier <code>transform-logic-changed</code> notice.</li>
+    </ol>
+  </div>
+
+  <div class="callout red"><b>The trust circuit-breaker</b>
+  For each policy rule: <code>waiver_rate_30d = waivers / block_decisions</code>. Above 10%, the rule auto-demotes block → warn and pages its owner. v8's "false-positive budget" becomes a mechanism instead of a slide-word — the gate cannot silently burn credibility.</div>
+</section>
+
+<!-- ============ 5 COMPOSE ============ -->
+<section id="compose">
+  <span class="band green">§5 · How the four flows compose</span>
+  <h2>Three shared spines, one closed loop</h2>
+  <div class="flowrow">
+    <div class="fnode"><div class="t" style="color:var(--blue)">§1 Collection</div><div class="d">7 mechanisms → gateway → Kafka → Iceberg</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="t" style="color:var(--purple)">§2 Fusion</div><div class="d">identity → conflict → confidence → lifecycle → append-only graph + snapshots</div></div>
+    <div class="arrow">→</div>
+    <div class="fnode"><div class="t" style="color:var(--orange)">§3 Impact · <span style="color:var(--teal)">§4 Gate</span></div><div class="d">CSR projection → reports &amp; decisions (pinned snapshot + policy + model)</div></div>
+  </div>
+  <p class="lead" style="margin-top:10px">…and the loop closes: every merge updates the baseline (CI diff → collection), every gate decision and waiver feeds calibration and triage (fusion), and the graph the next PR is judged against is already current.</p>
+  <div class="cards">
+    <div class="card blue"><h4>Spine 1 — Identity</h4><p>Every mechanism joins through the same deterministic URN grammar and stable entityId. Collection without shared identity is seven disagreeing inventories.</p></div>
+    <div class="card purple"><h4>Spine 2 — Snapshots</h4><p>Fusion writes append-only; impact and the gate read pinned watermarks. One discipline makes every blocking decision reproducible and appealable.</p></div>
+    <div class="card orange"><h4>Spine 3 — Confidence with teeth</h4><p>Conflict matrix + calibration make the fused graph more trustworthy than any single signal. Possible never blocks; cold paths always surface — honest in both directions.</p></div>
+  </div>
+
+  <div class="legend">
+    <span style="color:var(--green)">■ Verified ≥85 — gate-eligible</span>
+    <span style="color:var(--amber)">■ Probable 65–84 — surfaced, cautioned</span>
+    <span style="color:var(--muted)">▨ Inferred &lt;65 — dashed, never gates</span>
+    <span style="color:var(--red)">■ Breaking</span>
+    <span style="color:var(--amber)">■ Warning</span>
+    <span style="color:var(--purple)">■ Review</span>
+  </div>
+
+  <footer>
+    Companion HTML to <code>05-subsystem-deep-dive.md</code> · Decisions in <code>03-decision-records.md</code> · Normative specs in <code>04-high-level-design.md</code> · Gap traceability in <code>01-gap-register.md</code>.<br>
+    Throughline architecture review package · self-contained (no external requests) · renders light &amp; dark.
+  </footer>
+</section>
+
+</div>
+
+<script>
+function tab(which){
+  var a = which === 'A';
+  document.getElementById('tabA').className = a ? 'on' : '';
+  document.getElementById('tabB').className = a ? '' : 'on';
+  document.getElementById('tabA').setAttribute('aria-selected', a);
+  document.getElementById('tabB').setAttribute('aria-selected', !a);
+  document.getElementById('panelA').hidden = !a;
+  document.getElementById('panelB').hidden = a;
+}
+</script>
+</body>
+</html>
