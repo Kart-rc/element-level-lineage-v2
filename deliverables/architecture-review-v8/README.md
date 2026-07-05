@@ -33,6 +33,7 @@ The review's verdict, in one line: **the product thesis is right and worth build
 | [04-high-level-design.md](04-high-level-design.md) | Normative specifications: URN grammar, data model DDL, ingestion contract, conflict matrix, impact engine, CI gate, APIs, security, capacity math, NFR/SLO table, operations | Implementers; the board for §10–§11 |
 | [05-subsystem-deep-dive.md](05-subsystem-deep-dive.md) | Deep-dive on the four core subsystems — collection mechanisms, fusion engine, impact-analysis flow, PR/gate flow — with diagrams and worked examples on the v8 Orders scenario | Anyone wanting the guided tour; pairs with the HTML below |
 | [deep-dive.html](deep-dive.html) | Self-contained HTML rendering of the deep-dive with visual flows, record-evolution cards, the six-hop blast radius, and tabbed PR walkthroughs (no external dependencies; light/dark) | Non-Markdown readers; demos and reviews |
+| [architecture-explorer.html](architecture-explorer.html) | **Interactive explorer for the whole package**: clickable four-plane architecture, step-through flows with real payloads, a 20-endpoint API explorer with examples, a URN builder, a live confidence calculator (the exact ADR-008 rules), a 2k→10k capacity slider, and filterable gap/ADR registers. Self-contained, light/dark, deep-linkable tabs | Everyone — the fastest way to *understand* the architecture |
 
 Reading order:
 
