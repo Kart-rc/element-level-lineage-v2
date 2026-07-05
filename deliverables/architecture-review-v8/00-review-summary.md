@@ -74,5 +74,6 @@ Two lessons the numbers teach: v8's sizing omitted OTel entirely (the dominant s
 | Exec / sponsor | This document §1–§5 |
 | Review board | 00 → [01 gaps](01-gap-register.md) → [02 architecture](02-target-architecture.md) → [03 ADRs](03-decision-records.md) → [04 HLD](04-high-level-design.md); confirm the five items in [README §6](README.md#6-open-items-for-the-review-board) |
 | Implementer | [02](02-target-architecture.md) → [04](04-high-level-design.md) → [03](03-decision-records.md), with [05 deep-dive](05-subsystem-deep-dive.md) / [deep-dive.html](deep-dive.html) as the guided tour of collection, fusion, impact, and the PR flow |
+| Anyone, hands-on | [architecture-explorer.html](architecture-explorer.html) — the interactive version: step through the flows, browse every API with examples, build a URN, score an edge, drag the capacity slider |
 
 Status legend and conventions: [README §3](README.md#3-conventions).
