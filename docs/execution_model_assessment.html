@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assessment — Lineage Discovery Execution Model</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface:#fcfcfb; --plane:#f4f4f1; --card:#ffffff; --code-bg:#f7f7f4;
+    --ink-1:#0b0b0b; --ink-2:#52514e; --ink-3:#898781;
+    --grid:#e1e0d9; --ring:rgba(11,11,11,0.10);
+    --accent:#2a78d6; --accent-deep:#184f95; --accent-soft:#e8f0fd;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --good-wash:#eaf7ea; --warn-wash:#fdf4e0; --crit-wash:#fbebeb; --ser-wash:#fceee7;
+    --good-ink:#0a7d0a; --warn-ink:#8a6000; --crit-ink:#b32c2c; --ser-ink:#a24a22;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface:#1a1a19; --plane:#0d0d0d; --card:#1f1f1e; --code-bg:#141413;
+    --ink-1:#ffffff; --ink-2:#c3c2b7; --ink-3:#898781;
+    --grid:#2c2c2a; --ring:rgba(255,255,255,0.12);
+    --accent:#3987e5; --accent-deep:#86b6ef; --accent-soft:#152740;
+    --good-wash:#12240f; --warn-wash:#2b2210; --crit-wash:#2b1414; --ser-wash:#2b1c14;
+    --good-ink:#0ca30c; --warn-ink:#fab219; --crit-ink:#e66767; --ser-ink:#ec835a;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--plane); color:var(--ink-1);
+    font-family:'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-size:15px; line-height:1.62; -webkit-font-smoothing:antialiased; }
+  .mono, code { font-family:'IBM Plex Mono', ui-monospace, Menlo, monospace; }
+  code { font-size:.9em; background:var(--code-bg); padding:1px 5px; border-radius:4px; }
+  .wrap { max-width:1080px; margin:0 auto; padding:0 26px 90px; }
+  header { background:var(--surface); border-bottom:1px solid var(--grid); padding:40px 0 32px; margin-bottom:32px; position:relative; }
+  .eyebrow { font:600 10.5px/1 'IBM Plex Mono',monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:13px; }
+  h1 { font:600 32px/1.22 inherit; margin:0 0 11px; letter-spacing:-.015em; max-width:30ch; }
+  .sub { font-size:15.5px; color:var(--ink-2); max-width:76ch; margin:0; }
+  #themeBtn { position:absolute; top:20px; right:26px; background:var(--card); color:var(--ink-2);
+    border:1px solid var(--ring); border-radius:7px; padding:7px 13px; cursor:pointer; font:500 11px 'IBM Plex Mono',monospace; }
+  #themeBtn:hover { border-color:var(--accent); color:var(--accent); }
+  section { margin-bottom:48px; }
+  h2 { font:600 21px/1.3 inherit; margin:0 0 6px; letter-spacing:-.01em; }
+  .sec-num { font:600 10.5px 'IBM Plex Mono',monospace; letter-spacing:.12em; color:var(--accent); display:block; margin-bottom:7px; }
+  .lede { color:var(--ink-2); max-width:78ch; margin:0 0 20px; font-size:14.5px; }
+  .card { background:var(--card); border:1px solid var(--grid); border-radius:12px; padding:20px 22px; }
+  p { max-width:80ch; }
+
+  .verdict { background:var(--accent-soft); border:1px solid var(--accent); border-radius:12px; padding:22px 25px; margin-bottom:18px; }
+  .verdict h3 { font:600 16.5px inherit; margin:0 0 10px; }
+  .verdict p { margin:0 0 11px; font-size:14.5px; } .verdict p:last-child { margin:0; }
+
+  .keep { display:grid; grid-template-columns:22px 1fr; gap:11px; padding:10px 0; border-top:1px solid var(--grid); font-size:13.8px; }
+  .keep:first-of-type { border-top:none; }
+  .keep i { font-style:normal; color:var(--good); font-weight:600; }
+  .keep b { font-weight:600; }
+  .keep span { color:var(--ink-2); }
+
+  .find { border:1px solid var(--grid); border-radius:12px; overflow:hidden; margin-bottom:14px; background:var(--card); }
+  .find-h { padding:14px 19px; border-bottom:1px solid var(--grid); display:flex; gap:11px; align-items:baseline; flex-wrap:wrap; }
+  .find-id { font:600 10px 'IBM Plex Mono',monospace; letter-spacing:.08em; flex:none; }
+  .find-t { font-weight:600; font-size:15px; flex:1; min-width:280px; }
+  .sev { font:600 9px 'IBM Plex Mono',monospace; letter-spacing:.07em; padding:3px 8px; border-radius:4px; flex:none; }
+  .s-hi { background:var(--crit-wash); color:var(--crit-ink); } .find-h.hi { background:var(--crit-wash); } .find-h.hi .find-id { color:var(--crit-ink); }
+  .s-md { background:var(--warn-wash); color:var(--warn-ink); } .find-h.md { background:var(--warn-wash); } .find-h.md .find-id { color:var(--warn-ink); }
+  .s-lo { background:var(--ser-wash); color:var(--ser-ink); } .find-h.lo { background:var(--ser-wash); } .find-h.lo .find-id { color:var(--ser-ink); }
+  .find-b { padding:5px 19px 17px; }
+  .fr { display:grid; grid-template-columns:126px 1fr; gap:14px; padding:11px 0; border-bottom:1px solid var(--grid); }
+  .fr:last-child { border-bottom:none; }
+  .fr-l { font:600 9.5px 'IBM Plex Mono',monospace; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); padding-top:3px; }
+  .fr-r { font-size:13.6px; color:var(--ink-2); }
+  .fr-r strong { color:var(--ink-1); font-weight:600; }
+  .fr.fix .fr-l { color:var(--good); } .fr.fix .fr-r { color:var(--ink-1); }
+  @media (max-width:760px){ .fr { grid-template-columns:1fr; gap:3px; } }
+
+  table.t { width:100%; border-collapse:collapse; font-size:13.2px; }
+  table.t th { text-align:left; font:600 9.5px 'IBM Plex Mono',monospace; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--ink-3); padding:0 12px 9px 0; border-bottom:1px solid var(--ink-3); vertical-align:bottom; }
+  table.t td { padding:11px 12px 11px 0; border-bottom:1px solid var(--grid); vertical-align:top; color:var(--ink-2); }
+  table.t td:first-child { font-weight:600; color:var(--ink-1); }
+  table.t tr.lane td { background:var(--accent-soft); font-weight:600; color:var(--accent-deep); font-size:11px;
+    font-family:'IBM Plex Mono',monospace; letter-spacing:.06em; text-transform:uppercase; padding:8px 12px 8px 10px; }
+  .auth { font:600 9px 'IBM Plex Mono',monospace; padding:2px 7px; border-radius:4px; letter-spacing:.05em; white-space:nowrap; }
+  .a-yes { background:var(--good-wash); color:var(--good-ink); }
+  .a-no  { background:var(--code-bg); color:var(--ink-3); }
+  .a-adv { background:var(--warn-wash); color:var(--warn-ink); }
+
+  pre { background:var(--code-bg); border:1px solid var(--grid); border-radius:9px; padding:14px 16px;
+    overflow-x:auto; font-family:'IBM Plex Mono',monospace; font-size:12.3px; line-height:1.65; margin:12px 0; }
+  .note { border-left:3px solid var(--accent); background:var(--accent-soft); border-radius:0 9px 9px 0;
+    padding:14px 17px; font-size:13.8px; color:var(--ink-1); margin-top:14px; }
+  .danger { border-left:3px solid var(--critical); background:var(--crit-wash); border-radius:0 9px 9px 0;
+    padding:14px 17px; font-size:13.8px; color:var(--ink-1); margin-top:14px; }
+  footer { border-top:1px solid var(--grid); padding-top:20px; font-size:12.5px; color:var(--ink-3); max-width:80ch; }
+</style>
+</head>
+<body>
+
+<header>
+  <button id="themeBtn">◐ dark</button>
+  <div class="wrap">
+    <div class="eyebrow">Design Review · Lineage Discovery Execution Model</div>
+    <h1>Assessment: one engine, three modes — and the three things it does not cover</h1>
+    <p class="sub">The proposal is strong and mostly right. Its best idea — binding the lineage package to the immutable artifact digest — closes a gap your own architecture flags as unsolved. The problems are that a green CI check will assert something it cannot know, that the design silently covers only one of your three substrates, and that the incremental model is unsound as specified.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <span class="sec-num">01 — VERDICT</span>
+  <h2>Adopt — with three design changes and four plan changes</h2>
+  <div class="verdict">
+    <h3>The shape is right. The scope is narrower than it appears, and one label is dangerous.</h3>
+    <p>One portable engine, CI-authoritative, local-optional, LLM behind a governed gateway, enforcement phased from observe to block — every one of those calls is correct, and several are better than what most teams ship. <b>Artifact-digest binding in the release pipeline is the single strongest idea in the document</b> and should be pulled forward, not treated as a late-stage detail: it converts deploy correlation from heuristic inference into a fact.</p>
+    <p>Three things need to change before this is buildable. <b>First</b>, the PR gate compares the engine's output against a contract the engine itself produced — that is a drift check, not a validation, and calling it "Lineage validation: PASSED" will be read by every engineer as a correctness claim it cannot support. <b>Second</b>, the whole workflow assumes the producer is a repository whose source you analyse; roughly half your estate by data volume emits exact lineage from the engine at execution time and has no place in this pipeline at all. <b>Third</b>, the incremental model as written can miss edges silently, which is the one failure mode a lineage system cannot absorb.</p>
+  </div>
+</section>
+
+<section>
+  <span class="sec-num">02 — WHAT HOLDS</span>
+  <h2>Credit where it is due — do not re-litigate these</h2>
+  <p class="lede">Eight calls in the proposal are correct and should survive review unchanged.</p>
+  <div class="card" id="keeps"></div>
+</section>
+
+<section>
+  <span class="sec-num">03 — FINDINGS</span>
+  <h2>Seven findings, ordered by severity</h2>
+  <p class="lede">The first three change the design. The rest change the plan.</p>
+  <div id="findings"></div>
+</section>
+
+<section>
+  <span class="sec-num">04 — THE MISSING PIECE</span>
+  <h2>The review step is a free labelling pipeline, and the proposal throws it away</h2>
+  <p class="lede">This is the highest-value single addition, and it costs almost nothing.</p>
+  <div class="card">
+    <p style="margin-top:0">The workflow already has developers reviewing and <b>correcting</b> proposed mappings — that is the point of "require the developer to accept or correct material mappings." Every correction is a labelled ground-truth example produced by the person best qualified to produce it, at the moment they are already looking at the code.</p>
+    <pre>proposal.json          ← what the engine discovered
+lineage.yaml (accepted) ← what the developer signed off
+
+  diff(proposal, accepted)
+      ↓
+  { edge, engine_said, human_said, provenance: DETERMINISTIC|LLM,
+    archetype, repo, commit, reviewer, timestamp }
+      ↓
+  corpus/  ← the calibration set, accumulating for free</pre>
+    <p>Emit that diff as a structured event on every accept. Within a quarter of normal PR traffic you have the labelled corpus that currently blocks confidence calibration, the honest version of the FR-CONF-008 accuracy claim, and any future distillation — <b>without funding a separate labelling project.</b> You also get the two metrics that actually matter and are otherwise unobtainable: <b>correction rate by provenance</b> (how often is the deterministic layer wrong vs the LLM) and <b>correction rate by archetype</b> (which parsers to invest in next).</p>
+    <div class="note"><b>One design constraint that makes this work:</b> the accepted contract must record <em>which edges a human actually looked at</em>, not just which were committed. A developer who bulk-accepts a 40-edge proposal produces forty labels of value zero, and a corpus polluted with rubber-stamps is worse than a small honest one. Capture an explicit per-edge acknowledgement for material mappings only, and treat everything else as unreviewed.</div>
+  </div>
+</section>
+
+<section>
+  <span class="sec-num">05 — REVISED MODEL</span>
+  <h2>Three lanes, not three modes</h2>
+  <p class="lede">The proposal's table describes Lane A well. Lanes B and C have different authoritative moments, and forcing them through a PR-CI pipeline is the misrouting to avoid.</p>
+  <div class="card">
+    <table class="t" id="lanes"></table>
+    <div class="note"><b>The cross-lane point.</b> Lane B is not merely another substrate — it is the <b>oracle for Lane A</b>. Where a Spark job reads a topic that a Spring service produces, the plan lineage on the consuming side independently corroborates the inferred lineage on the producing side. That is the only external correctness signal available to Lane A, and it is free. Wire it as a scheduled reconciliation job, not as a CI step.</div>
+  </div>
+</section>
+
+<section>
+  <span class="sec-num">06 — CORRECTED CLI SURFACE</span>
+  <h2>Small changes to the developer-facing output that carry real weight</h2>
+  <div class="card">
+    <table class="t">
+      <thead><tr><th>Proposed</th><th>Problem</th><th>Change to</th></tr></thead>
+      <tbody>
+        <tr><td><code>Lineage validation: FAILED</code></td><td>Reads as "your lineage is wrong." It means "your contract disagrees with re-derivation."</td><td><code>Lineage drift detected</code> — and on the pass path, <code>No drift · correctness unverified</code></td></tr>
+        <tr><td><code>Confidence: 0.91</code></td><td>Two decimals of false precision on an uncalibrated scale. Nobody can act on 0.91 vs 0.88.</td><td><code>Confidence: PROBABLE (derivational) · reasons: [CONFIG_RESOLVED, LLM_RESIDUAL]</code></td></tr>
+        <tr><td>Single <code>lineage.yaml</code> at repo root</td><td>Lineage binds to an artifact digest; a repo can build several artifacts, and one artifact can run in two environments against different topics.</td><td><code>lineage/&lt;artifact-name&gt;.yaml</code>, with environment-scoped path guards inside</td></tr>
+        <tr><td><code>lineage discover --changed</code></td><td>Implies the changed-file set bounds the affected edge set. It does not.</td><td><code>--changed</code> (fast, unsound, advisory) and <code>--affected</code> (determinant-based, sound, the CI default)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <span class="sec-num">07 — WHAT TO TEST FIRST</span>
+  <h2>The three cheapest experiments that would falsify this assessment</h2>
+  <div class="card">
+    <table class="t">
+      <thead><tr><th>Experiment</th><th>Cost</th><th>What it settles</th></tr></thead>
+      <tbody>
+        <tr><td>Run full-repo discovery twice on one unchanged Spring commit, with the LLM live</td><td>Hours</td><td>Whether CI is reproducible in practice. If the two edge sets differ at all, F4 is confirmed and the resolution cache moves from "should" to "must" before any gate is enabled.</td></tr>
+        <tr><td>Take 20 real merged PRs; run incremental discovery, then full discovery; diff</td><td>~2 days</td><td>The unsound-incremental rate (F3). If it is zero across 20 realistic changes, the determinant model can be deferred. If it is not, you have found the bug before it is load-bearing.</td></tr>
+        <tr><td>Time a cold and a warm <code>--changed</code> run on your largest Spring repo</td><td>~1 day</td><td>Whether the 30-second local target needs a resident index (F7). This determines whether local mode is a command or a daemon, which is a large scope difference discovered cheaply.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  Assessed against the project's Out-of-Band HLD v2, the Adversarial Challenge Response (notably Q10 on gaps that force
+  producer-side change, Q27 on PR merge behaviour, and Q31–Q33 on repo analysability), the SCA requirements
+  specification (FR-CONF-006 through FR-CONF-008), and the substrate routing established in the prior lineage
+  collection review. Percentages are the estimates from that routing, not measurements.
+</footer>
+
+</div>
+
+<script>
+const KEEPS = [
+  ['One containerised engine across all modes','Eliminates the classic local-tool / CI-tool drift where the two disagree and nobody can say which is right.'],
+  ['CI authoritative, local advisory','Correct. A local run happens against a dirty tree, a local JDK and unpinned dependencies. It cannot be authoritative and should never be treated as such.'],
+  ['Artifact-digest binding at release','The strongest idea in the document. Your architecture currently lists deploy correlation as a gap requiring heuristic inference; this closes it outright. Pull it forward.'],
+  ['Local execution is optional','A tool that is mandatory before push becomes a tax that gets routed around. Making CI the backstop is the right dependency direction.'],
+  ['CI never silently commits an LLM-generated contract','Matches the human-approval constraint the Autopilot design already commits to. Propose a patch, comment, upload the artifact — correct on all three.'],
+  ['No SCA or LLM in production','Production confirms the tested artifact and observed boundaries. Anything heavier is cost and risk in the worst possible place.'],
+  ['Enforcement phased observe → acknowledge → block','Directly addresses the finding that false-positive rate is the hardest metric to move and the one most likely to kill adoption.'],
+  ['Cache key includes analyzer, model and prompt version','Most teams key on file hash alone and then cannot explain why results changed. Including the toolchain version is a sign the design has been thought through.'],
+];
+
+const FINDINGS = [
+  { id:'F-01', sev:'hi', sevL:'CHANGES THE DESIGN', t:'The PR gate checks self-consistency and reports it as validation',
+    rows:[
+      ['What it does','CI re-derives lineage with the same engine and compares it against <code>lineage.yaml</code>, which that same engine produced and a developer accepted. Divergence fails the build.'],
+      ['What that proves','<strong>That the contract kept up with the code.</strong> That is a real and useful property — it is the anti-staleness control, and it works. It is worth having.'],
+      ['What it does not prove','<strong>That the lineage is correct.</strong> If a developer accepts a wrong LLM proposal, CI re-derives the same wrong answer — same deterministic engine, same pinned model, same prompt — the comparison passes, and the wrong lineage is published with a green check. The generator and the validator are the same system, which is the identical structural flaw as a self-scoring eval loop.'],
+      ['Why it matters more than it looks','<code>Lineage validation: PASSED</code> will be read by every engineer, and by every leadership scorecard, as a correctness assertion. That is the same overclaim as labelling an OTel-corroborated edge "Verified" — certifying a property on evidence that does not bear on it. It is worse here, because it appears on every PR.'],
+      ['Fix','Rename it. <code>Lineage drift: none</code> on the pass path, <code>Lineage drift detected</code> on the fail path. Then add the one thing that <em>can</em> speak to correctness: reconcile against Lane B plan lineage wherever the two overlap, on a schedule, and report that separately as a <em>correctness</em> signal with its own measured rate.',1],
+    ]},
+
+  { id:'F-02', sev:'hi', sevL:'CHANGES THE DESIGN', t:'The model covers one substrate and reads as if it covers the estate',
+    rows:[
+      ['Hidden assumption','Every producer is a repository whose source is analysed, built into an artifact, and released through a pipeline. The entire document — <code>lineage discover</code>, the PR diff, the release binding — is built on that shape.'],
+      ['Where it breaks','<strong>Plan-based substrates do not work this way.</strong> A Spark job\'s exact column lineage is produced by the optimizer <em>during a real run against real schemas</em>, not at build time. A dbt manifest is closer — <code>dbt compile</code> fits in CI — but the catalog that resolves <code>select *</code> comes from the warehouse, not the repo. For these, <strong>the authoritative moment is execution, not release</strong>, and there is no <code>discover</code> step to run. Separately, the opaque estate — vendor systems, legacy binaries, anything without a repo — has no CI at all and therefore no place in this model whatsoever.'],
+      ['Consequence','Build only this and you have institutionalised the misrouting: the most expensive and least certain method becomes the standard path for substrates that already emit exact lineage for free, and roughly a fifth of the estate is structurally unrepresentable.'],
+      ['Fix','Three lanes with different authoritative moments (§05). Lane A is this proposal and it is good. Lane B is emit-at-execution and needs a listener plus a reconciliation job, not a CI stage. Lane C is scheduled inference, advisory forever. Critically, <strong>Lane B\'s output is the external oracle Lane A currently lacks</strong> — which is what turns F-01 from a naming problem into a solved one.',1],
+    ]},
+
+  { id:'F-03', sev:'hi', sevL:'CHANGES THE DESIGN', t:'Incremental analysis is unsound as specified, and unsound means silently missing edges',
+    rows:[
+      ['What is specified','<code>Changed file → affected methods → affected call graph → affected sources and sinks</code>, with a cache keyed on file-content hash, schema hash, dependency version, analyzer version, model and prompt version, symbol graph hash.'],
+      ['The flaw','That traversal is <strong>forward reachability from the changed file</strong>. The set of lineage edges a change affects is not bounded by it. Concretely: change a Spring <code>@Bean</code> qualifier or a profile in <code>application.yaml</code> and a different <code>CurrencyConverter</code> is injected — no Java file changed, no call-graph edge from the change, lineage silently different. Same for a Jackson <code>@JsonProperty</code> rename, a generic type parameter change, or an added overload that shifts resolution. The cache key list is good for <em>invalidation of what you know about</em>; it has no way to invalidate an edge whose determinant was a file the traversal never visits.'],
+      ['Why this specific failure is unacceptable','A missing edge does not surface as an error. It surfaces as blast radius that <em>under-reports</em> during an incident — the impacted consumer is simply absent from the list, so it is never investigated. Over-reporting costs an engineer ten seconds of dismissal; under-reporting costs an outage nobody connected.'],
+      ['Fix','Invert the model: record, per emitted edge, the <strong>determinant set</strong> — every file, symbol and config key whose content contributed to deriving it. You already have this data structure if edges carry evidence spans. Invalidate an edge when any determinant changes. That is sound and still incremental. Then keep <code>--changed</code> as the fast local approximation and make <code>--affected</code> the CI default. Add a <strong>scheduled full rescan</strong> and diff it against the incremental result: the divergence rate is both a bug detector and a metric worth publishing.',1],
+    ]},
+
+  { id:'F-04', sev:'md', sevL:'CHANGES THE PLAN', t:'"Reproducible CI" and "LLM in CI" are in direct tension',
+    rows:[
+      ['The claim','CI provides "reproducible validation" and is authoritative; the LLM runs in CI for governance reasons — central credentials, approved model versions, prompt logging, cost limits. <strong>The governance argument is right.</strong>'],
+      ['The tension','A model in the loop makes CI non-deterministic. The same commit re-run can resolve a residual path differently, which means the discovered-vs-declared comparison can fail on a commit that nobody touched. Flaky gates are worse than no gates: they train people to re-run until green, which destroys the enforcement progression before it reaches Phase 2.'],
+      ['Fix','Make LLM resolution <strong>content-addressed and shared</strong>: key each resolution on <code>(code_slice_hash, schema_hash, model_version, prompt_version)</code> and store it in a central store, not a per-runner cache. A given residual is then resolved once, ever, across every repo and every re-run — deterministic replay, full audit trail, and a large cost collapse as the same framework idioms recur across the estate. Temperature 0 is a helpful supplement, not a substitute.',1],
+      ['Second fix','Make "do not block on LLM-proposed mappings" <strong>structural rather than advisory</strong>. The policy engine should not receive LLM-provenance edges as blocking candidates at all. Combined with the rule that an LLM-derived edge can never reach the top confidence band, that gives one clean invariant: <em>only deterministic edges can ever fail a build.</em>',1],
+    ]},
+
+  { id:'F-05', sev:'md', sevL:'CHANGES THE PLAN', t:'Onboarding is merge-bound, not scan-bound',
+    rows:[
+      ['The proposal','Batch-scan the estate, generate contracts, classify, then "open onboarding PR or review task." The illustrative split has 450 high-confidence contracts and 250 needing review.'],
+      ['The actual constraint','450 PRs into 450 teams\' repositories. Your own challenge response is explicit that the executive PR-merge SLA commitment <em>has not been obtained</em>, and devotes a full section to "your PR is safe, but not this quarter." Scanning throughput is not the bottleneck; <strong>merge throughput is</strong>, and no execution model can fix an organisational constraint.'],
+      ['Consequence','Lineage coverage becomes a function of how cooperative 450 teams feel this quarter. The graph stays empty in exactly the domains with the least engagement — which correlate with the domains that need RCA most.'],
+      ['Fix','<strong>Decouple publication from merge.</strong> Publish discovered lineage to the platform immediately, keyed by commit SHA and artifact digest, at Advisory trust. The repo-resident contract then becomes a <em>trust upgrade</em> — merging it promotes the lineage from Advisory to Producer-attested — rather than an entry requirement. The graph is useful on day one; the PR becomes an incentive with a visible payoff instead of a gate with a queue.',1],
+    ]},
+
+  { id:'F-06', sev:'md', sevL:'CHANGES THE PLAN', t:'The hotfix path produces no lineage, and hotfixes are what cause incidents',
+    rows:[
+      ['The gap','Lineage is produced by CI. Hotfixes skip CI. Emergency deploys, <code>[skip ci]</code>, direct pushes to a release branch, and manually promoted images all bypass the pipeline — and the steel-thread scenario in your own architecture is literally <em>"Hotfix v3.17 → Gate 4 FAIL → SEV-1."</em> The deploy most likely to cause an incident is the one guaranteed to have no lineage.'],
+      ['Consequence','RCA degrades to dataset-level topology at precisely the moment element-level blast radius is most valuable, and the absence is invisible because a missing lineage package looks identical to a service that was never onboarded.'],
+      ['Fix','Two things. Make the <strong>release-pipeline digest binding unskippable</strong> even when PR validation is skipped — it is cheap, it is deterministic, and it can run on an already-built image. Then treat <strong>"artifact digest observed in production with no published lineage package" as a first-class alert</strong>, not a silent gap. That is the observability-of-observability principle your Enforcer already applies to itself, applied here.',1],
+    ]},
+
+  { id:'F-07', sev:'lo', sevL:'SCOPE RISK', t:'The 30-second local target implies a resident index, not a CLI',
+    rows:[
+      ['The target','"Local changed-file discovery under 30 seconds," stated as a design target to be calibrated by proof of concept — which is the right caveat.'],
+      ['The problem','Sound analysis of a Spring repo needs <strong>resolved type information</strong>, not just syntax. Without it you cannot resolve JPA mappings, Jackson serialisation, generic containers or bean injection — which is where essentially all the lineage lives. Type resolution needs a classpath, which needs a build. A cold Maven or Gradle compile on a large repo is minutes, not seconds.'],
+      ['Consequence','30 seconds is reachable only with a warm incremental index — which means building or embedding something close to a language server, with lifecycle, invalidation and memory characteristics of its own. That is a materially larger scope than "ship a CLI," and discovering it late is expensive.'],
+      ['Fix','Decide this deliberately. Either budget for a resident indexer and reframe local mode as a background daemon that reports when ready, or accept 2–3 minutes locally and <strong>optimise the loop developers will actually experience</strong>. Note that since local execution is correctly optional, most developers\' real feedback loop is <em>push → wait for CI → fix → push</em>. The proposal optimises the loop that is optional and leaves the mandatory one at three minutes.',1],
+    ]},
+];
+
+const LANES = [
+  ['lane','LANE A — CUSTOM CODE · Spring, FastAPI, Dask · ~38% of repos · inference required'],
+  ['Developer machine','Deterministic analysis only; LLM never local','<span class="auth a-no">NO</span>','Fast feedback and contract correction. Unsound <code>--changed</code> mode is fine here.'],
+  ['Pull-request CI','Deterministic + cached LLM resolution; drift check; proposed patch','<span class="auth a-yes">YES — for drift</span>','Explicitly <em>not</em> authoritative for correctness. Only deterministic edges may block.'],
+  ['Release pipeline','Bind and sign lineage against the artifact digest','<span class="auth a-yes">YES</span>','Unskippable, including on hotfix paths. This is the strongest control in the design.'],
+  ['Production','Confirm digest, schemas and observed boundaries only','<span class="auth a-no">NO</span>','No SCA, no LLM. Missing lineage for an observed digest is an alert.'],
+
+  ['lane','LANE B — PLAN-BASED · Spark SQL, dbt, Airflow · ~42% · exact lineage, no inference'],
+  ['Developer machine','<code>dbt compile</code> → manifest lineage; free and instant','<span class="auth a-no">NO</span>','No discovery engine needed. Different tool, different lane.'],
+  ['Pull-request CI','Compile and diff manifest lineage — deterministic, no LLM, fast','<span class="auth a-yes">YES — for drift</span>','Cheap and exact. Should gate before Lane A does.'],
+  ['Job execution (runtime)','OpenLineage listener emits actual column lineage per run','<span class="auth a-yes">YES — for derivation</span>','<b>The authoritative moment is execution, not release.</b> This is the structural difference the proposal misses.'],
+  ['Reconciliation job','Compare Lane B runtime lineage against overlapping Lane A edges','<span class="auth a-yes">YES — as oracle</span>','The only external correctness signal available to Lane A. Scheduled, not per-PR.'],
+
+  ['lane','LANE C — OPAQUE · vendor, legacy, no repo · ~20% · no code access'],
+  ['Scheduled scanner','Value-fingerprint inference over the data plane','<span class="auth a-adv">ADVISORY</span>','No CI exists for these. Never blocks anything, ever. Surfaces candidate edges for human confirmation.'],
+];
+
+const SEVC = {hi:['s-hi','hi'], md:['s-md','md'], lo:['s-lo','lo']};
+
+document.getElementById('keeps').innerHTML = KEEPS.map(k =>
+  `<div class="keep"><i>✓</i><div><b>${k[0]}.</b> <span>${k[1]}</span></div></div>`).join('');
+
+document.getElementById('findings').innerHTML = FINDINGS.map(f => {
+  const [sc, hc] = SEVC[f.sev];
+  return `<div class="find">
+    <div class="find-h ${hc}"><span class="find-id">${f.id}</span><span class="find-t">${f.t}</span>
+      <span class="sev ${sc}">${f.sevL}</span></div>
+    <div class="find-b">${f.rows.map(r =>
+      `<div class="fr${r[2]?' fix':''}"><div class="fr-l">${r[0]}</div><div class="fr-r">${r[1]}</div></div>`).join('')}
+    </div></div>`;
+}).join('');
+
+document.getElementById('lanes').innerHTML =
+  '<thead><tr><th>Location</th><th>Runs</th><th>Authoritative?</th><th>Notes</th></tr></thead><tbody>' +
+  LANES.map(r => r[0] === 'lane'
+    ? `<tr class="lane"><td colspan="4">${r[1]}</td></tr>`
+    : `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('') +
+  '</tbody>';
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const r = document.documentElement, d = r.getAttribute('data-theme') === 'dark';
+  r.setAttribute('data-theme', d ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = d ? '◐ dark' : '◑ light';
+});
+</script>
+</body>
+</html>
