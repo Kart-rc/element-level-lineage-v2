@@ -70,6 +70,7 @@ Notes:
 - **The classifier is the fast path, not a soundness shortcut.** Its "no impact" verdict is only trusted because invalidation is determinant-based (§7): an edge's determinant set names every file, symbol, and config key that contributed to deriving it, so "changed set ∩ determinant sets = ∅ (and no manifest/schema globs hit)" is a sound exit. Forward reachability from changed files alone is documented as unsound (F-03) and is not used.
 - The classifier's rule packs (per file type: SQL, dbt, OpenAPI, IaC, application code, config) are code-reviewed configuration, versioned with the toolchain hash.
 - **The three paths (SCA, LLM, runtime) are a ladder here, not a triple-run**: SCA re-derives deterministically; the LLM is consulted only for residue slices whose content hash misses the shared cache (F-04); runtime corroboration arrives asynchronously through the standing evidence pipelines and re-scores the affected edges when it lands. A push therefore costs seconds-to-minutes, not a baseline.
+- **The fastest runtime corroboration is the integration-test sidecar (ADR-028):** when the change's integration tests run (trigger row 17), feature-flagged sidecar evidence joins the head candidate artifact within the change loop itself — "N of M changed paths executed under test" is available to the PR surface pre-merge, with zero production overhead. Production-environment evidence still arrives later via the passive pipelines and is what lifts edges to prod Verified.
 - The safety net for classifier bugs is trigger row 10: the nightly full rescan diffs against the incremental state, and the divergence rate is a published metric — if the fast path ever skips real impact, it surfaces as drift within a day, with the offending rule pack identifiable.
 
 ## 3. PRGate
@@ -148,6 +149,7 @@ Derived from the signal responsibility matrix; the gateway validates each event'
 | `llm` (Tier 3 residue) | proposed column mapping, `tl.transform`, `tl.path.guard` | authoritative types; any confidence field (LLM self-confidence is excluded from scoring by design); runtime fields |
 | `spark-ol` / `airflow-ol` / `warehouse` | observed dataset/column edges (where facets exist), run stats, `tl.path.frequency` | complete-coverage claims when facets are absent (coverage is measured per operation, not per event) |
 | `cloudwatch-agg` / `otel-agg` | `tl.interaction` (peer, channel, counts, recency, latency, error rate) | column/field mappings of any kind |
+| `sidecar-test` (ADR-028: feature-flagged, integration tests only) | observed interaction edges, executed `tl.path` confirmation, run stats bound to test-run ID + artifact digest; explicitly instrumented element mappings (the `RuntimeLineageObservation` contract) | production-environment tags (arrival with a prod tag is a misconfiguration alarm); Verified status in production context (Probable ceiling — cross-environment rule) |
 | `registry` | entity schema, type/version truth | transforms, execution evidence |
 | `declared` (`lineage.yaml`) | owner-attested edges + TTL | Verified status without runtime corroboration (Probable ceiling) |
 

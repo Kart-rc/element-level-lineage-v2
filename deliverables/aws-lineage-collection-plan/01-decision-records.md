@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Draft — for review |
-| **Role** | The eight decisions that turn lineage collection into a repeatable, zero-touch AWS service with an approval experience. ADRs decide and justify; normative specifications live in [02-aws-architecture.md](02-aws-architecture.md), [03-trigger-matrix.md](03-trigger-matrix.md), [04-collection-workflow-spec.md](04-collection-workflow-spec.md), [05-approval-ui-spec.md](05-approval-ui-spec.md), and [08-scale-resilience-observability.md](08-scale-resilience-observability.md), and are referenced, not duplicated. |
+| **Role** | The nine decisions that turn lineage collection into a repeatable, zero-touch AWS service with an approval experience. ADRs decide and justify; normative specifications live in [02-aws-architecture.md](02-aws-architecture.md), [03-trigger-matrix.md](03-trigger-matrix.md), [04-collection-workflow-spec.md](04-collection-workflow-spec.md), [05-approval-ui-spec.md](05-approval-ui-spec.md), and [08-scale-resilience-observability.md](08-scale-resilience-observability.md), and are referenced, not duplicated. |
 | **Numbering** | Continues the global sequence from [../architecture-review-v8/03-decision-records.md](../architecture-review-v8/03-decision-records.md) (ends at ADR-019). |
 | **Statuses** | `Decided` = implement unless the board objects · `Default — board confirmation requested` = defensible default, explicit confirmation wanted |
 
@@ -202,6 +202,34 @@ Reconciliation then **preserves disagreements as conflicts** (the existing rule:
 
 ---
 
+## ADR-028: Feature-flagged sidecar runtime collection — on during integration tests, off in production
+
+**Status:** Decided · **Resolves:** how the runtime path produces evidence without production overhead · **Builds on:** the `RuntimeLineageObservation` contract and its gates ([../lineage-collection-assessment.md](../lineage-collection-assessment.md) §5), ADR-025 (test-automation service), ADR-020 (artifact-digest binding), the identity contract's cross-environment rule
+
+**Context.** The runtime leg of the three-path ladder needs execution evidence, but the estate-wide alternatives all pay somewhere: production instrumentation carries overhead and rollout friction (the de-review is blunt that no universal zero-overhead mechanism can prove in-process element mappings), and waiting for production traffic means runtime corroboration arrives days after a change ships. The org already runs integration tests through the test-automation service (ADR-025) — a controlled environment where overhead is acceptable and every run is tied to a commit SHA and artifact digest.
+
+**Decision.** Runtime lineage collection ships as an **instrumented sidecar attached to applications, enabled by a feature flag only during integration-test runs, and off in production.**
+
+1. **Mechanics.** The sidecar (container alongside the app in the test environment) observes boundary I/O — HTTP/gRPC calls, Kafka produce/consume, S3/database access — and, where teams opt in, receives explicitly instrumented in-process element-mapping events (the `RuntimeLineageObservation` contract, unchanged: emitted once per operation/path/schema version, never per row). It emits canonical envelopes (ADR-027) with `provenance.signal = sidecar-test`, stamped with `environment = <test env>`, the test-run ID, commit SHA, artifact digest, and the **flag state** — evidence is always attributable to the run that produced it.
+2. **The flag.** Sidecar activation is deployment configuration (AWS AppConfig or the org's flag system), asserted on by the test-automation service for integration runs and **asserted off in production by policy** — the platform alarms if `sidecar-test` evidence ever arrives tagged with a production environment (that is a misconfiguration, not a signal).
+3. **What the evidence means — the honest scoping.** The identity contract's rule stands: **cross-environment corroboration is rejected** — a test run never directly raises the confidence of a production edge. Sidecar evidence corroborates at two legitimate levels instead:
+   - *Within the test-environment graph*: full runtime term — it confirms executed paths, interaction edges, and (where instrumented) element mappings for that environment.
+   - *At the artifact-digest level* (ADR-020): the evidence attaches to the digest as an **execution-confirmed-in-test facet**. When that exact digest deploys to production, its edges carry "executed under integration test for this digest" — lifting them above the static-only posture in impact and UI treatment, with a **Probable ceiling**: production **Verified** still requires production-environment runtime evidence (OpenLineage, CloudWatch/OTel aggregates).
+4. **Where it lands in the loop.** Integration tests run in the PR/merge window — so runtime corroboration becomes available **pre-deploy, inside the change loop**, rather than days later from production traffic. The PR surface can say "3 of 4 changed paths executed under integration tests" before anyone merges. Coverage truth applies as everywhere: paths the test suite never exercises stay `not-observed`; test coverage gaps become visible lineage-coverage gaps, which is a feature, not a flaw.
+
+**Why.** Zero production overhead by construction (the strongest objection to runtime instrumentation disappears); evidence arrives at the moment the change loop needs it; the test-automation service already orchestrates the runs and carries the correlation identifiers; and the artifact-digest binding gives test evidence a sound bridge into production context without violating the environment rule.
+
+**Alternatives considered.**
+- **Production sidecars (always-on or sampled)** — real prod evidence, but pays latency/overhead on every hop of every service and requires an estate-wide rollout negotiation; rejected for this phase. Production evidence continues to arrive via the passive paths (CloudWatch aggregates now, OpenLineage/OTel as adopted).
+- **eBPF/mesh-level capture in production** — lower overhead than in-process sidecars but sees bytes, not element semantics, and still needs prod rollout; noted in the de-review's alternatives table as a later layer; deferred.
+- **Test-time evidence treated as production Verified** — rejected outright: it would launder test-environment observation into production trust, exactly what the cross-environment rule and the zero-cross-environment-auto-merge gate exist to prevent.
+- **No runtime-in-test signal (wait for prod adoption)** — leaves the incremental loop's runtime path empty for the entire OTel/OpenLineage adoption window; rejected.
+
+**Consequences.** A new signal row (`sidecar-test`) in the assertion-constraint table ([04](04-collection-workflow-spec.md) §5.2) and a new trigger row (integration-test run completed → evidence ingestion, [03](03-trigger-matrix.md)). The sidecar image and its conformance library become platform deliverables ([06](06-delivery-roadmap.md), Phase 2). Evidence volume is test-run-bounded, not prod-scale — negligible against the [08](08-scale-resilience-observability.md) §1 budgets. The confidence model gains one posture ("test-corroborated, Probable ceiling in prod context") whose exact weight is calibrated on the pilot slice like every other weight — priors, not truths.
+**Revisit trigger:** production OTel/OpenLineage coverage ≥ 80% for an app → the digest-level facet stops adding information for that app and can be dropped from its impact rendering; or a future decision to run sampled sidecars in production supersedes the off-in-prod policy explicitly.
+
+---
+
 ## Summary table
 
 | ADR | Decision | Status |
@@ -214,3 +242,4 @@ Reconciliation then **preserves disagreements as conflicts** (the existing rule:
 | 025 | Test-automation service = active-repo authority; CloudWatch logs = interaction-confirming signal (never column lineage) | Decided |
 | 026 | Distributed Map fan-out, priority lanes, DLQ/replay, correlation-ID tracing + per-flow status records | Decided |
 | 027 | One canonical OpenLineage-aligned schema for SCA/LLM/runtime; uniform structure, signal-constrained assertions | Decided |
+| 028 | Feature-flagged sidecar runtime collection in integration tests, off in production; digest-level corroboration, Probable ceiling in prod context | Decided |

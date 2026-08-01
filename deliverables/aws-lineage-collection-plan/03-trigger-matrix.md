@@ -26,6 +26,7 @@
 | 14 | **Waiver / attestation expiry approaching** (TTL sweep) | Steward notifier | Queue item + owner notification (waivers ≤ 90 d; declared contracts default TTL 180 d, decay to Inferred on expiry) | Steward-queue entries; decay events on true expiry | A+B+C |
 | 15 | **Prompt/model version bump** (config merge) → `toolchain.updated` | Planned re-extraction wave | Nightly Bedrock batch wave through the content-addressed cache (F-04) — **never in the PR path** | Re-derived LLM-residue edges under new `(modelVersion, promptVersion)` keys; comparison report old-vs-new | A |
 | 16 | **User approval decision finalized** (`proposal.finalized` from the UI) | Trust promotion | Apply per-edge decisions; promote Advisory → **Producer-attested**; write the immutable review record | Trust-band changes; review record; calibration-corpus events (proposal-vs-accepted diff) | A+B+C |
+| 17 | **Integration-test run completed** (test-automation service) → `test.run.completed` | Sidecar-evidence ingestion (ADR-028) | Collect the run's feature-flagged sidecar envelopes (`sidecar-test`, tagged with test env + run ID + commit SHA + artifact digest); validate; join to the run's candidate artifact | Test-environment runtime corroboration; **execution-confirmed-in-test facet on the artifact digest** (Probable ceiling in prod context — cross-environment rule preserved); path-execution coverage for the PR surface | A |
 
 ## 2. The invariant
 
