@@ -4,7 +4,7 @@
 
 **Goal:** Build a production-ready AWS platform that inventories and classifies up to 10,000 repositories, generates business-application baseline lineage, performs determinant-based incremental updates, collects metadata-only integration-test runtime evidence, and publishes only human-approved lineage with complete evidence, confidence, audit, resilience, and operational visibility.
 
-**Architecture:** EventBridge routes normalized triggers, priority SQS queues absorb spikes, and Step Functions coordinates baseline, incremental, runtime, and publication workflows. AWS Batch executes containerized analysis; Bedrock receives only named unresolved holes; AppConfig controls metadata-only integration sidecars; S3 is immutable truth; DynamoDB holds operational state; Neptune and OpenSearch are rebuildable approved projections.
+**Architecture:** EventBridge routes normalized triggers, priority SQS queues absorb spikes, and Step Functions coordinates baseline, incremental, runtime, and publication workflows. AWS Batch executes containerized analysis; Bedrock receives only named unresolved holes; AppConfig controls metadata-only integration sidecars; a validation Lambda assigns per-sidecar Kinesis partitions; S3 is immutable truth; DynamoDB holds operational state; Neptune and OpenSearch are rebuildable approved projections.
 
 **Tech Stack:** TypeScript 5 and AWS CDK v2 for infrastructure/control services; Python 3.12 for analyzers, verification, confidence, and projection workers; Go 1.24 for the runtime sidecar; React and TypeScript for the review UI; JSON Schema and OpenAPI contracts; Jest/CDK assertions, pytest, Go tests, Vitest, Playwright, and controlled AWS load/chaos harnesses.
 
@@ -44,7 +44,7 @@ docs/{adr,runbooks}/
 | Baseline | Synthetic business-application baseline with eligibility and approval |
 | Incremental | Determinant-bounded diff for application, library, infrastructure, documentation, mixed, and unknown changes |
 | Runtime | Metadata-only evidence, production hard-deny, completeness reconciliation |
-| Publication | Reviewer-controlled optimistic publication and rebuildable projections |
+| Publication | Reviewer-controlled fenced publication and rebuildable projections |
 | Enterprise | 10,000-repository load, spike fairness, chaos, privacy, security, and DR gates |
 
 ### Task 1: Scaffold the Workspace and Record Architecture Decisions
@@ -138,6 +138,9 @@ Assert:
 - Events include event ID/type/time, organization, correlation, schema version,
   and typed data.
 - Repository changes contain repository/commit and optional artifact digest.
+- SCM idempotency requires commit SHA; deployment idempotency requires artifact
+  digest and environment. Missing immutable identities cannot collapse to an
+  empty shared key.
 - Eligibility uses only approved classes.
 - Runtime evidence has no raw value, payload, body, header, SQL parameter,
   credential, or generic attributes map.
@@ -255,8 +258,12 @@ git commit -m "feat: add immutable evidence and control state"
 ### Task 4: Implement Event Intake and Priority Queues
 
 **Files:**
+- Create: `services/event-normalizer/src/adapters/scm-webhook.ts`
+- Create: `services/event-normalizer/src/adapters/deployment-event.ts`
 - Create: `services/event-normalizer/src/handler.ts`
 - Create: `services/event-normalizer/src/idempotency.ts`
+- Create: `services/event-normalizer/test/scm-webhook.test.ts`
+- Create: `services/event-normalizer/test/deployment-event.test.ts`
 - Create: `services/event-normalizer/test/handler.test.ts`
 - Create: `infra/lib/constructs/event-intake.ts`
 - Create: `infra/lib/stacks/control-plane-stack.ts`
@@ -264,9 +271,14 @@ git commit -m "feat: add immutable evidence and control state"
 
 **Step 1: Write failing tests**
 
-Cover canonical normalization, duplicate replay, artifact idempotency, distinct
-Tier-1/incremental/baseline/backfill routing, DLQs, encryption, queue-age alarms,
-and EventBridge archive.
+Cover authenticated SCM webhook and deployment-event adaptation, canonical
+normalization, duplicate replay, source-specific immutable identities,
+distinct Tier-1/incremental/baseline/backfill routing, DLQs, encryption,
+queue-age alarms, and EventBridge archive.
+
+Assert SCM keys include `commitSha` and deployment keys include
+`artifactDigest + environment`. Reject SCM events without a commit SHA and
+quarantine deployment events without a digest.
 
 **Step 2: Verify failure**
 
@@ -279,9 +291,10 @@ Expected: FAIL.
 
 **Step 3: Implement**
 
-Validate before recording idempotency. Invalid events go to a rejected-event
-store with reason codes. Connect analysis through SQS, never directly from
-EventBridge.
+Validate and authenticate source adapters before recording idempotency. Invalid
+events go to a rejected-event store with reason codes. Use event-type-specific
+keys so separate pre-deployment commits cannot deduplicate each other. Connect
+analysis through SQS, never directly from EventBridge.
 
 **Step 4: Verify**
 
@@ -369,11 +382,14 @@ git commit -m "feat: add reviewable repository eligibility"
 
 **Files:**
 - Create: `services/context-builder/src/test-automation-client.ts`
+- Create: `services/context-builder/src/scm-client.ts`
+- Create: `services/context-builder/src/deployment-client.ts`
 - Create: `services/context-builder/src/cloudwatch-context.ts`
 - Create: `services/context-builder/src/native-lineage.ts`
 - Create: `services/context-builder/src/dependencies.ts`
 - Create: `services/context-builder/src/build-context.ts`
 - Create: `services/context-builder/test/build-context.test.ts`
+- Create: `services/context-builder/test/connectors.test.ts`
 - Create: `tests/fixtures/application-context/`
 
 **Step 1: Write failing context tests**
@@ -381,6 +397,10 @@ git commit -m "feat: add reviewable repository eligibility"
 Assert:
 
 - Active repositories come from the Test Automation Service.
+- Each active repository resolves to an immutable SCM commit and current
+  deployed artifact digest through explicit connector interfaces.
+- Missing or conflicting deployment evidence is retained as a context gap and
+  never silently replaced with the repository default branch.
 - Association evidence retains its source and precedence.
 - Production CloudWatch data creates interaction context only.
 - Libraries map to consumers plus pinned versions/digests.
@@ -398,9 +418,11 @@ Expected: FAIL.
 
 **Step 3: Implement connectors behind interfaces**
 
-Persist RepositoryInventorySnapshot, ApplicationContextSnapshot, current
-dependency entries, and immutable dependency history. Mark service calls as
-`INTERACTION`; require an explicit governed mapping before lineage projection.
+Implement the Test Automation, SCM, deployment/artifact, and CloudWatch
+connectors behind typed interfaces. Persist RepositoryInventorySnapshot,
+ApplicationContextSnapshot, current dependency entries, and immutable
+dependency history. Mark service calls as `INTERACTION`; require an explicit
+governed mapping before lineage projection.
 
 **Step 4: Verify**
 
@@ -425,18 +447,35 @@ git commit -m "feat: build application context and dependency index"
 - Create: `workers/analyzer/src/lineage_analyzer/router.py`
 - Create: `workers/analyzer/src/lineage_analyzer/cache.py`
 - Create: `workers/analyzer/src/lineage_analyzer/holes.py`
+- Create: `workers/analyzer/src/lineage_analyzer/adapters/native.py`
+- Create: `workers/analyzer/src/lineage_analyzer/adapters/sca.py`
+- Create: `workers/analyzer/src/lineage_analyzer/adapters/rules.py`
+- Create: `workers/analyzer/src/lineage_analyzer/adapters/bedrock_residual.py`
 - Create: `workers/analyzer/src/lineage_analyzer/main.py`
 - Create: `workers/analyzer/tests/test_router.py`
 - Create: `workers/analyzer/tests/test_cache.py`
+- Create: `workers/analyzer/tests/test_native_adapter.py`
+- Create: `workers/analyzer/tests/test_sca_adapter.py`
+- Create: `workers/analyzer/tests/test_rules_adapter.py`
+- Create: `workers/analyzer/tests/test_bedrock_residual.py`
 - Create: `workers/analyzer/Dockerfile`
 - Create: `infra/lib/constructs/analyzer-batch.ts`
+- Create: `infra/lib/constructs/bedrock-residual.ts`
 - Test: `infra/test/analyzer-batch.test.ts`
+- Test: `infra/test/bedrock-residual.test.ts`
 
 **Step 1: Write failing tests**
 
-Cover substrate routing, deterministic repeatability, named holes, LLM-only
-hole invocation, full cache-key versioning, S3 checkpoints, and separate
+Cover native-plan adapters, deterministic SCA extraction, governed rules,
+substrate routing, deterministic repeatability, named holes, LLM-only hole
+invocation, full cache-key versioning, S3 checkpoints, and separate
 incremental/baseline/backfill/residual Batch queues.
+
+Assert Bedrock is not invoked when no named hole remains; its request contains
+only the bounded hole context and approved code/AST slice, never runtime
+payloads; its response is schema-valid and evidence-cited; timeout, throttling,
+or invalid output leaves the hole unresolved. CDK assertions restrict
+`bedrock:InvokeModel` to approved model ARNs and only the residual job role.
 
 The residual cache key is:
 
@@ -449,11 +488,17 @@ codeSliceHash + schemaHash + modelVersion + promptVersion + policyVersion
 ```bash
 python -m pytest workers/analyzer/tests -v
 npm test --workspace infra -- analyzer-batch.test.ts
+npm test --workspace infra -- bedrock-residual.test.ts
 ```
 
 Expected: FAIL.
 
-**Step 3: Implement the job protocol**
+**Step 3: Implement concrete analyzers and the job protocol**
+
+Implement versioned adapters for native substrate plans, deterministic static
+code analysis, and governed mapping rules. Route their evidence into named
+holes before constructing any bounded Bedrock residual request. Bedrock output
+remains proposed evidence and cannot publish or exclude a repository.
 
 Each job receives an S3 manifest URI, checksum, correlation IDs, and output
 prefix. It writes a schema-valid AnalysisPackage and stage manifest. Never put
@@ -467,6 +512,7 @@ Spot for interruptible baseline/backfill.
 ```bash
 python -m pytest workers/analyzer/tests -v
 npm test --workspace infra -- analyzer-batch.test.ts
+npm test --workspace infra -- bedrock-residual.test.ts
 ```
 
 Expected: PASS.
@@ -474,8 +520,8 @@ Expected: PASS.
 **Step 5: Commit**
 
 ```bash
-git add workers/analyzer infra/lib/constructs/analyzer-batch.ts infra/test/analyzer-batch.test.ts
-git commit -m "feat: add scalable analyzer job framework"
+git add workers/analyzer infra/lib/constructs/analyzer-batch.ts infra/lib/constructs/bedrock-residual.ts infra/test/analyzer-batch.test.ts infra/test/bedrock-residual.test.ts
+git commit -m "feat: add concrete scalable lineage analyzers"
 ```
 
 ### Task 8: Implement the Business-Application Baseline Workflow
@@ -500,6 +546,11 @@ Assert the workflow:
 8. Ends at AWAITING_REVIEW, not publication.
 9. Exposes all stages in the run ledger.
 10. Supports failure threshold and failed-child redrive.
+11. Sends shared-library, infrastructure, documentation, and test-only
+    repositories only through metadata/dependency indexing, never standalone
+    workload analysis.
+12. Invokes Bedrock only for named holes and runtime tests only when the
+    evidence plan explicitly requires them.
 
 **Step 2: Verify failure**
 
@@ -553,6 +604,9 @@ Cover:
 - Mixed monorepo paths.
 - UNKNOWN hold/replay.
 - Stale baseline fallback.
+- No Bedrock call when deterministic analysis leaves no named hole.
+- No runtime session when the accepted baseline and change evidence are
+  sufficient; selected integration tests run only for a named evidence gap.
 
 **Step 2: Verify failure**
 
@@ -569,6 +623,10 @@ Expected: FAIL.
 - Emit explainable NO_LINEAGE_IMPACT records.
 - Analyze consumers, not a library as a standalone producer.
 - Activate library effects only with a consuming application artifact.
+- Resolve contract/schema changes to connected producers and consumers before
+  targeted analysis.
+- Update test-scenario coverage and runtime-evidence freshness without running
+  standalone SCA on a test-automation repository; recollect only when needed.
 - Produce added, removed, modified, confidence, unresolved, and coverage diffs.
 - End material changes at AWAITING_REVIEW.
 
@@ -650,6 +708,9 @@ git commit -m "feat: add metadata-only lineage observer"
 - Create: `services/runtime-controller/src/appconfig-validator.ts`
 - Create: `services/runtime-controller/src/reconcile.ts`
 - Create: `services/runtime-controller/test/session.test.ts`
+- Create: `services/runtime-ingress/src/handler.ts`
+- Create: `services/runtime-ingress/src/validate.ts`
+- Create: `services/runtime-ingress/test/handler.test.ts`
 - Create: `infra/lib/constructs/runtime-evidence.ts`
 - Create: `infra/lib/constructs/runtime-workflow.ts`
 - Create: `infra/test/runtime-evidence.test.ts`
@@ -659,13 +720,17 @@ git commit -m "feat: add metadata-only lineage observer"
 
 Cover artifact/test/environment/expiry binding, production rejection, READY
 barrier, finally-path disable, independent expiry, governed CloudWatch
-subscription, Kinesis session partitioning, dedupe, sequence/manifests, and
-INCOMPLETE confidence suppression.
+subscription, validation-router rejection of prohibited fields,
+`runtimeSessionId + sidecarId` Kinesis partition assignment, duplicate and
+out-of-order delivery, per-sidecar sequence/manifest reconciliation, and
+INCOMPLETE confidence suppression. Assert that a direct CloudWatch-to-Kinesis
+subscription is not configured.
 
 **Step 2: Verify failure**
 
 ```bash
 npm test --workspace services/runtime-controller
+npm test --workspace services/runtime-ingress
 npm test --workspace infra -- runtime-evidence.test.ts
 python -m pytest tests/integration/test_runtime_session.py -v
 ```
@@ -680,7 +745,12 @@ REQUESTED -> ENABLING -> READY -> COLLECTING -> DRAINING
 ```
 
 Support INCOMPLETE, FAILED, EXPIRED, CANCELLED, and TRUNCATED. Store evidence in
-S3 and state in DynamoDB. Production roles receive no evidence-write permission.
+S3 and state in DynamoDB. Route governed CloudWatch subscription batches
+through the validation Lambda, then call Kinesis PutRecords with
+`runtimeSessionId + sidecarId` as the explicit partition key. Treat Kinesis
+ordering as per-sidecar only; COMPLETE requires every expected closing manifest
+and sequence range after persisted evidence has drained. Production roles
+receive no evidence-write permission.
 
 **Step 4: Verify**
 
@@ -691,7 +761,7 @@ Expected: PASS, including timeout and production-deny cases.
 **Step 5: Commit**
 
 ```bash
-git add services/runtime-controller infra/lib/constructs/runtime-evidence.ts infra/lib/constructs/runtime-workflow.ts infra/test/runtime-evidence.test.ts tests/integration/test_runtime_session.py
+git add services/runtime-controller services/runtime-ingress infra/lib/constructs/runtime-evidence.ts infra/lib/constructs/runtime-workflow.ts infra/test/runtime-evidence.test.ts tests/integration/test_runtime_session.py
 git commit -m "feat: control integration runtime evidence sessions"
 ```
 
@@ -753,14 +823,17 @@ git add workers/verifier
 git commit -m "feat: verify lineage with two-axis confidence"
 ```
 
-### Task 13: Implement Proposal Review and Optimistic Publication
+### Task 13: Implement Proposal Review and Fenced Publication
 
 **Files:**
 - Create: `services/proposal-api/src/transitions.ts`
 - Create: `services/proposal-api/src/corrections.ts`
+- Create: `services/proposal-api/src/reservation.ts`
 - Create: `services/proposal-api/src/publication.ts`
+- Create: `services/proposal-api/src/orphan-cleanup.ts`
 - Create: `services/proposal-api/src/handler.ts`
 - Create: `services/proposal-api/test/transitions.test.ts`
+- Create: `services/proposal-api/test/publication-concurrency.test.ts`
 - Create: `infra/lib/constructs/publication-workflow.ts`
 - Create: `infra/test/publication-workflow.test.ts`
 - Create: `tests/integration/test_approval_publication.py`
@@ -786,7 +859,14 @@ Assert:
 - Accepted manifest is immutable and checksummed.
 - Publication checks the expected prior graph version.
 - Stale publication returns REBASE_REQUIRED.
-- Active pointer changes only after graph verification.
+- Two proposals based on the same graph version cannot both acquire the
+  application publication reservation.
+- A lost or expired lease cannot activate its target graph namespace.
+- Neptune mutations target an immutable, inactive graph-version namespace.
+- Active pointer changes only after graph verification and a fenced DynamoDB
+  transaction.
+- Abandoned graph namespaces are marked ORPHANED and are never queryable
+  through the active pointer.
 - Search lag is exposed as a watermark.
 - Engine-versus-human diff enters the evaluation corpus.
 
@@ -800,11 +880,16 @@ python -m pytest tests/integration/test_approval_publication.py -v
 
 Expected: FAIL.
 
-**Step 3: Implement conditional transitions**
+**Step 3: Implement conditional transitions and publication fencing**
 
-Use DynamoDB conditions for proposal transitions and graph pointer. Apply
-bounded Neptune mutation with transaction-conflict retry. Mark ACTIVE only
-after graph version/checksum verification.
+Use an application-scoped DynamoDB reservation conditioned on the expected
+active version. Issue a target version, lease, and fencing token. Apply bounded
+Neptune mutations with transaction-conflict retry only inside that immutable
+target-version namespace. After graph version/checksum verification, use a
+DynamoDB transaction conditioned on the live fencing token to advance the
+active pointer and proposal state. A cleanup workflow marks and removes
+ORPHANED namespaces from expired workers. Mark ACTIVE only after the fenced
+transaction succeeds.
 
 **Step 4: Verify**
 
@@ -839,6 +924,8 @@ Assert:
 - Only ACTIVE accepted manifests project.
 - Interactions remain distinct from lineage.
 - Projected edges retain graph version and evidence.
+- Query resolution reads only the graph-version namespace selected by the
+  active DynamoDB pointer; staged and ORPHANED namespaces are invisible.
 - Replay is idempotent.
 - Full rebuild matches incremental projection.
 - Queries expose graph version and watermark.
@@ -858,8 +945,9 @@ Expected: FAIL.
 
 **Step 3: Implement**
 
-Use Neptune for traversals and OpenSearch for discovery. Implement asynchronous
-impact queries beyond synchronous bounds.
+Use Neptune graph-version namespaces for traversals and OpenSearch for
+discovery. Resolve the active DynamoDB pointer before each bounded query.
+Implement asynchronous impact queries beyond synchronous bounds.
 
 **Step 4: Verify**
 

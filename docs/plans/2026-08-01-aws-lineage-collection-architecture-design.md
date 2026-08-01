@@ -107,7 +107,9 @@ flowchart LR
     C["3. Queue<br/>EventBridge and SQS"]
     D["4. Coordinate<br/>Step Functions"]
     E1["SCA and native parsing<br/>AWS Batch"]
+    R{"Named holes remain?"}
     E2["Unresolved holes<br/>Amazon Bedrock"]
+    S{"Runtime evidence needed?"}
     E3["Integration runtime<br/>AppConfig, sidecars,<br/>CloudWatch and Kinesis"]
     F["5. Verify and propose<br/>S3 evidence and<br/>DynamoDB state"]
     G["6. Review<br/>Before, after, evidence,<br/>confidence and corrections"]
@@ -120,12 +122,11 @@ flowchart LR
     B -->|"Documentation"| J["Record no lineage impact"]
     B -->|"Unknown"| K["Classification review"]
     C --> D
-    D --> E1
-    D --> E2
-    D --> E3
-    E1 --> F
-    E2 --> F
-    E3 --> F
+    D --> E1 --> R
+    R -->|"Yes"| E2 --> S
+    R -->|"No"| S
+    S -->|"Yes"| E3 --> F
+    S -->|"No"| F
     F --> G
     G -->|"Approved"| H
     G -->|"Corrected"| F
@@ -139,7 +140,7 @@ flowchart LR
 | Amazon EventBridge | Decide where a normalized event goes |
 | Amazon SQS | Hold prioritized work until capacity is available |
 | AWS Step Functions | Coordinate long-running, visible workflows |
-| AWS Lambda | Execute short control-plane actions |
+| AWS Lambda | Execute short control-plane and governed validation/routing actions |
 | AWS Batch | Execute CPU-, memory-, disk-, and time-intensive analyzers |
 | Amazon Bedrock | Resolve only named deterministic-analysis holes |
 | AWS AppConfig | Control bounded integration-test evidence sessions |
@@ -205,6 +206,8 @@ Lambda performs:
 - Small API commands.
 - SQS dispatch.
 - Manifest validation.
+- Runtime-envelope validation and explicit per-sidecar Kinesis partition
+  routing.
 - Notification routing.
 
 It does not clone repositories or run full SCA.
@@ -260,16 +263,23 @@ CloudWatch is used in two distinct modes:
 2. Dedicated integration log groups receive structured metadata-only lineage
    evidence from sidecars.
 
-Subscription filters forward only governed lineage records to Kinesis. The
-platform reconciles sequence numbers and final manifests because transport
-failure must produce INCOMPLETE rather than false success.
+Subscription filters forward only governed lineage records to a validation and
+routing Lambda. The router validates the session envelope, rejects prohibited
+fields, and writes to Kinesis with
+`runtimeSessionId + sidecarId` as the partition key. Direct CloudWatch Logs to
+Kinesis delivery is not used because it cannot derive that application-level
+partition key. The platform reconciles per-sidecar sequence numbers and final
+manifests because neither CloudWatch delivery nor cross-sidecar Kinesis order is
+a completeness guarantee; transport failure must produce INCOMPLETE rather
+than false success.
 
 ### 6.9 Kinesis for Runtime Evidence
 
 Runtime field observations are telemetry rather than control events. Kinesis
-provides a stream partitioned by runtime session, on-demand capacity, ordered
-records within a partition, and independent consumers for validation,
-correlation, and archival.
+provides on-demand capacity, ordered records per validated
+`runtimeSessionId + sidecarId` partition, and independent consumers for
+correlation and archival. Completeness is determined from per-sidecar sequence
+ranges and closing manifests, not from global session ordering.
 
 EventBridge and the main SQS queues are intentionally not used for every
 runtime observation.
@@ -305,11 +315,13 @@ DynamoDB stores:
 - Edge determinants.
 - Runtime session state.
 - Proposal state.
+- Publication reservation, lease, and fencing token.
 - Current canonical graph pointer.
 - Projection watermarks.
 
-Conditional writes support idempotency, optimistic publication, and
-single-writer fencing without turning DynamoDB into the lineage graph.
+Conditional writes support idempotency, publication reservation, and
+single-writer pointer activation without turning DynamoDB into the lineage
+graph.
 
 ### 6.12 Neptune for Approved Graph Traversal
 
@@ -414,13 +426,19 @@ flowchart LR
     B["Discover active repositories<br/>Test Automation Service"]
     C["Add deployment, schema,<br/>native lineage and<br/>CloudWatch context"]
     D{"Classify every repository"}
-    E["Full eligible workload analysis"]
-    F["Record library consumers"]
-    G["Record infrastructure bindings"]
-    H["Exclude documentation<br/>with reason"]
+    E["Analyze eligible application<br/>or pipeline workload"]
+    F["Index library consumers<br/>only"]
+    G["Index infrastructure<br/>bindings only"]
+    H["Record documentation<br/>NO_LINEAGE_IMPACT"]
     I["Classify monorepo paths"]
-    J["Resolve UNKNOWN"]
-    K["SCA, native parsing,<br/>LLM holes and runtime tests"]
+    J["Resolve UNKNOWN<br/>before completion"]
+    V["Index contracts and<br/>affected workloads"]
+    W["Index test coverage<br/>and sidecar expectations"]
+    K["Native parsing, deterministic<br/>SCA and governed rules"]
+    R{"Named unresolved<br/>holes remain?"}
+    S["Bounded LLM residual"]
+    T{"Runtime evidence<br/>required?"}
+    U["Selected integration tests"]
     L["Reconcile evidence,<br/>confidence and coverage"]
     M["Baseline proposal"]
     N["User review"]
@@ -431,12 +449,24 @@ flowchart LR
     D -->|"Shared library"| F
     D -->|"Infrastructure"| G
     D -->|"Documentation"| H
+    D -->|"Contract/schema source"| V
+    D -->|"Test automation"| W
     D -->|"Mixed"| I
     D -->|"Unknown"| J
-    F --> E
-    G --> E
-    I --> E
-    E --> K --> L --> M --> N
+    F --> L
+    G --> L
+    H --> L
+    V --> L
+    W --> L
+    I -->|"Eligible paths"| E
+    I -->|"Excluded paths"| L
+    J -->|"Resolved classification"| D
+    E --> K --> R
+    R -->|"Yes"| S --> T
+    R -->|"No"| T
+    T -->|"Yes"| U --> L
+    T -->|"No"| L
+    L --> M --> N
     N -->|"Approved"| O
     N -->|"Corrected"| M
 ```
@@ -514,12 +544,16 @@ flowchart LR
     D["Find affected determinants"]
     E["Find library consumers"]
     F["Evaluate infrastructure<br/>routes and bindings"]
-    G["Record no impact"]
+    G["Record pure-documentation<br/>no impact"]
     H["Route changed monorepo paths"]
     I["Classification review"]
+    V["Find contract producers<br/>and consumers"]
+    W["Update scenario coverage and<br/>runtime evidence freshness"]
     J{"Analysis required?"}
-    K["Targeted SCA and rules"]
+    K["Targeted native parsing,<br/>SCA and governed rules"]
+    R{"Named unresolved<br/>holes remain?"}
     L["LLM for unresolved holes"]
+    S{"Runtime evidence<br/>needed?"}
     M["Selected integration tests"]
     N["Compare with baseline"]
     O["Before-and-after proposal"]
@@ -530,28 +564,43 @@ flowchart LR
     C -->|"Application or pipeline"| D
     C -->|"Library"| E --> D
     C -->|"Infrastructure"| F --> D
-    C -->|"Documentation"| G
+    C -->|"Pure documentation"| G
+    C -->|"Contract/schema source"| V --> D
+    C -->|"Test automation"| W --> S
     C -->|"Mixed"| H --> D
     C -->|"Unknown"| I
     D --> J
     J -->|"No"| G
-    J -->|"Yes"| K --> L --> M --> N --> O --> P
+    J -->|"Yes"| K --> R
+    R -->|"Yes"| L --> S
+    R -->|"No"| S
+    S -->|"Yes"| M --> N
+    S -->|"No"| N
+    N --> O --> P
     P -->|"Approved"| Q
     P -->|"Corrected"| O
 ```
 
 ### 9.1 Normalize and Deduplicate
 
-SCM and deployment adapters emit normalized events. The workflow uses:
+SCM and deployment adapters emit normalized events. The workflow uses
+event-type-specific idempotency identities:
 
 ```
-organization + repository + artifactDigest + analyzerVersion + policyVersion
+SCM: organization + repository + commitSha + eventType
+     + analyzerVersion + policyVersion
+
+DEPLOYMENT: organization + repository + artifactDigest + environment
+            + eventType + analyzerVersion + policyVersion
 ```
 
-as its primary idempotency key.
+An SCM event without an immutable commit SHA is rejected. A deployment event
+without an immutable artifact digest is quarantined for resolution rather than
+deduplicated under an empty value.
 
-PR events may be coalesced when an older commit was never deployed. Every
-deployed artifact, including hotfixes, receives a lineage decision.
+Queue policy may explicitly supersede an older, never-deployed PR commit after
+recording both identities; this is coalescing, not deduplication. Every deployed
+artifact, including hotfixes, receives a lineage decision.
 
 ### 9.2 Determinant-Based Invalidation
 
@@ -619,16 +668,18 @@ flowchart LR
     E["Run selected tests"]
     F["Emit metadata-only evidence"]
     G["CloudWatch lineage logs"]
-    H["Kinesis session stream"]
+    Q["Validate and assign<br/>session + sidecar partition"]
+    H["Kinesis per-sidecar<br/>ordered partitions"]
     I["Validate, deduplicate,<br/>reconcile and correlate"]
     J["Immutable S3 evidence"]
-    K["Drain and verify manifests"]
+    K["After tests finish and evidence persists:<br/>drain and verify manifests"]
     L["Disable flag and close session"]
-    M["Structural confidence update"]
+    M["Promote structural confidence<br/>only when COMPLETE"]
     P["Production account"]
 
-    A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> M
-    E --> K --> L
+    A --> B --> C --> D --> E --> F --> G --> Q --> H --> I --> J
+    E --> K
+    J --> K --> L --> M
     P -. "IAM, policy and validator deny" .-> C
 ```
 
@@ -639,7 +690,8 @@ REQUESTED -> ENABLING -> READY -> COLLECTING -> DRAINING
           -> DISABLED -> COMPLETE
 ```
 
-Alternative terminal states are INCOMPLETE, FAILED, EXPIRED, and CANCELLED.
+Alternative terminal states are INCOMPLETE, TRUNCATED, FAILED, EXPIRED, and
+CANCELLED.
 
 Tests begin only after all expected sidecars are READY. The workflow disables
 the flag in a finally path. Session expiry is an independent kill switch.
@@ -793,16 +845,23 @@ Reviewer corrections create a new immutable proposal version.
 ### 12.2 Publication Protocol
 
 1. Write the approved canonical manifest to S3.
-2. Stage the Neptune graph delta.
-3. Verify expected prior graph version, counts, and checksums.
-4. Apply the bounded graph mutation with retry for transaction conflicts.
-5. Conditionally update the DynamoDB active graph pointer.
-6. Refresh OpenSearch.
+2. Conditionally acquire an application-scoped publication reservation in
+   DynamoDB. The condition requires the expected active graph version and
+   issues a target version, lease, and fencing token.
+3. Stage the Neptune graph into an immutable target-version namespace; never
+   mutate the namespace addressed by the active pointer.
+4. Verify expected prior graph version, target counts, and checksums.
+5. Use a DynamoDB transaction conditioned on the reservation and fencing token
+   to advance the active pointer and record the proposal transition.
+6. Refresh OpenSearch from the newly active version.
 7. Mark the proposal ACTIVE with graph version and projection watermark.
-8. Emit the immutable audit event.
+8. Emit the immutable audit event and release the reservation.
 
 If another proposal changed the expected prior graph version, publication
-stops and the proposal is rebased or superseded. It is never applied blindly.
+stops and the proposal is rebased or superseded. A worker that loses its lease
+cannot activate its target namespace. Abandoned target namespaces are marked
+ORPHANED and removed by a bounded cleanup/rebuild workflow; active traversal
+never reads them. A proposal is never applied blindly.
 
 ## 13. Data Ownership and Core Artifacts
 
