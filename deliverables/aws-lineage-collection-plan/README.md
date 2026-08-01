@@ -13,7 +13,7 @@
 
 The implementation plan for lineage collection as a **repeatable, zero-touch service on AWS** with an **approval experience**. It answers four questions the existing documents left open:
 
-1. **Repo level or Business Application level?** Both, deliberately: baseline collection scopes to the **Business Application** (context-rich: service catalog + test-automation active-repo inventory + CloudWatch interaction evidence); incremental collection executes per **repo** (lightweight: rule-based fast path, determinant-driven re-derivation); trust binds to the **artifact digest** (ADR-020).
+1. **Repo level or Business Application level?** Both, deliberately: baseline collection scopes to the **Business Application** (context-rich: service catalog + test-automation active-repo inventory + CloudWatch interaction evidence); incremental collection executes per **repo** (lightweight: rule-based fast path, determinant-driven re-derivation); trust binds to the **artifact digest** (ADR-020). Not every repo is an application: infrastructure, library, documentation, and tooling repos are classified — declared-first, detected-fallback — and get per-class treatment in both flows, with every exclusion recorded as a visible coverage state (ADR-029).
 2. **How does collection run with no manual invoke point?** A closed trigger matrix of 17 event rows — onboarding, push, PR, deploy, rollback, schedules, test runs, approvals — with a normative invariant: *there is no row for manual invocation* (ADR-023, [03](03-trigger-matrix.md)).
 3. **How do the three mechanisms (SCA, LLM, runtime) stay consistent?** One canonical OpenLineage-aligned schema for every signal — uniform structure, **signal-constrained assertions**, registry-validated at the gateway (ADR-027). The pushback is recorded: uniform payloads would launder authority; the constraint table prevents it.
 4. **How do users see and approve results?** An approval UI where deltas surface with before/after side-by-side, decisions are per-edge (material mappings require explicit acknowledgement), every finalize writes an immutable hash-chained review record, and approval promotes trust Advisory → Producer-attested (ADR-024, [05](05-approval-ui-spec.md)).
@@ -24,7 +24,7 @@ Two further sponsor requirements shape the whole design: **scale** (10,000-repo 
 
 | Doc | Contents | Read it if you are |
 |---|---|---|
-| [01-decision-records.md](01-decision-records.md) | ADR-020..028: scoping, serverless plane, backbone, zero-touch authority, approval, context sources, scale/visibility, canonical schema, sidecar runtime | Review board; anyone wanting the "why" |
+| [01-decision-records.md](01-decision-records.md) | ADR-020..029: scoping, serverless plane, backbone, zero-touch authority, approval, context sources, scale/visibility, canonical schema, sidecar runtime, repo classification | Review board; anyone wanting the "why" |
 | [02-aws-architecture.md](02-aws-architecture.md) | The 12 pipeline components → named AWS services, integration adapters, plane boundary, diagrams | AWS platform team, implementers (start here to build) |
 | [03-trigger-matrix.md](03-trigger-matrix.md) | The closed set of 17 triggers: event → what fires → what runs → what it produces, with lane tags | Everyone — this is the zero-touch contract |
 | [04-collection-workflow-spec.md](04-collection-workflow-spec.md) | The two processes (baseline, incremental), gate/promotion/nightly workflows, canonical schema + assertion constraints, artifact/delta/determinant contracts | Implementers |
@@ -48,6 +48,7 @@ Reading order — **board:** this README → 01 → 03 → 06. **Implementers:**
 | [ADR-026](01-decision-records.md#adr-026-scale-resilience-and-end-to-end-flow-visibility) | Distributed Map fan-out, priority lanes, DLQ/replay, per-flow status + tracing | Decided |
 | [ADR-027](01-decision-records.md#adr-027-canonical-lineage-observation-schema--one-schema-for-all-three-mechanisms-uniform-envelope-signal-constrained-assertions) | One canonical schema for SCA/LLM/runtime; signal-constrained assertions | Decided |
 | [ADR-028](01-decision-records.md#adr-028-feature-flagged-sidecar-runtime-collection--on-during-integration-tests-off-in-production) | Sidecar runtime collection in integration tests via feature flag; off in production | Decided |
+| [ADR-029](01-decision-records.md#adr-029-repo-classification--application-library-infrastructure-documentation-declared-first-detected-fallback-exclusion-is-a-recorded-state-never-silence) | Repo classification with per-class treatment; exclusion is a recorded state, never silence | Decided |
 
 ## 4. Honest constraints carried forward (the pushback, kept visible)
 
@@ -56,3 +57,4 @@ Reading order — **board:** this README → 01 → 03 → 06. **Implementers:**
 - **Test evidence is not production truth.** Sidecar corroboration from integration tests lifts confidence at the artifact-digest level with a Probable ceiling; production Verified requires production evidence — the cross-environment rule survives every convenience argument (ADR-028).
 - **A Dask OpenLineage collector still does not exist.** Deferred R&D, not a silent promise.
 - **ADR-018 is scoped, not overturned.** Serverless is right for the stateless collection plane; the stateful graph core keeps its documented posture, and the MSK migration path stays warm with named triggers (ADR-021/022).
+- **Excluded is a state, not an absence.** Infrastructure, library, documentation, and tooling repos are classified out of full extraction deliberately and visibly — IaC still contributes entity declarations, libraries still drive consumer re-derivation through determinants, and the coverage report always says what was not scanned and why (ADR-029).

@@ -11,7 +11,7 @@
 - Landing zone: accounts, VPC-less serverless baseline, CDK skeleton with the plane-boundary module split (ADR-021); quota inventory + initial raise requests ([08](08-scale-resilience-observability.md) §2).
 - GitHub App (org install on the pilot slice) + webhook receiver + dedup table + `throughline-collection` bus + Firehose envelope archive (components 1, 12).
 - Business App registry (DynamoDB + `POST /v1/apps`) seeded with the vertical-slice app; test-automation inventory adapter's first sync (ADR-025).
-- Canonical-schema registry v1: envelope + payload JSON Schemas + assertion-constraint table published (ADR-027); ingest-gateway validator skeleton.
+- Canonical-schema registry v1: envelope + payload JSON Schemas + assertion-constraint table published (ADR-027); ingest-gateway validator skeleton; manifest schema includes the `kind:` classification field (ADR-029).
 - Aurora DDL from HLD §2; URN library; identity ground-truth labeling for the slice.
 
 **Gate (unchanged):** Phase 0 exit — identity spike ≥ 95 % precision / ≥ 90 % recall on labeled slice entities; 100 % in-scope systems classified with owner and collection posture; duplicate/out-of-order/rename/rollback contract tests exist; security threat model and metadata-only boundary approved. **PIVOT/STOP branches apply as written.**
@@ -19,7 +19,7 @@
 ## Phase 1 — Weeks 5–8: deterministic baseline and lineage artifacts
 
 **AWS deliverables**
-- BaselineCollection Step Function with Distributed Map fan-out (backfill lane); Fargate extractor image (tree-sitter + sqlglot + manifest resolver; the scout-agent scripts adapted to the extractor contract in [04](04-collection-workflow-spec.md) §4).
+- BaselineCollection Step Function with Distributed Map fan-out (backfill lane); repo-classification step with detection rules v1 and per-class routing (ADR-029, [04](04-collection-workflow-spec.md) §8); Fargate extractor image (tree-sitter + sqlglot + manifest resolver; the scout-agent scripts adapted to the extractor contract in [04](04-collection-workflow-spec.md) §4).
 - Artifact registry live (S3 + Iceberg + DynamoDB pointers, component 4); determinant sets recorded per edge (F-03).
 - Advisory publication end-to-end: extraction → canonical envelopes → gateway → graph facts; zero-touch proof — registering the slice app triggers baseline with no human action (trigger rows 1–2).
 - First approval-UI increment: review inbox + edge review (screens 2 and 4), Cognito/OIDC wiring, endpoints 23–25.

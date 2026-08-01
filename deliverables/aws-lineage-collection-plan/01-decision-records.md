@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Draft — for review |
-| **Role** | The nine decisions that turn lineage collection into a repeatable, zero-touch AWS service with an approval experience. ADRs decide and justify; normative specifications live in [02-aws-architecture.md](02-aws-architecture.md), [03-trigger-matrix.md](03-trigger-matrix.md), [04-collection-workflow-spec.md](04-collection-workflow-spec.md), [05-approval-ui-spec.md](05-approval-ui-spec.md), and [08-scale-resilience-observability.md](08-scale-resilience-observability.md), and are referenced, not duplicated. |
+| **Role** | The ten decisions that turn lineage collection into a repeatable, zero-touch AWS service with an approval experience. ADRs decide and justify; normative specifications live in [02-aws-architecture.md](02-aws-architecture.md), [03-trigger-matrix.md](03-trigger-matrix.md), [04-collection-workflow-spec.md](04-collection-workflow-spec.md), [05-approval-ui-spec.md](05-approval-ui-spec.md), and [08-scale-resilience-observability.md](08-scale-resilience-observability.md), and are referenced, not duplicated. |
 | **Numbering** | Continues the global sequence from [../architecture-review-v8/03-decision-records.md](../architecture-review-v8/03-decision-records.md) (ends at ADR-019). |
 | **Statuses** | `Decided` = implement unless the board objects · `Default — board confirmation requested` = defensible default, explicit confirmation wanted |
 
@@ -230,6 +230,36 @@ Reconciliation then **preserves disagreements as conflicts** (the existing rule:
 
 ---
 
+## ADR-029: Repo classification — application, library, infrastructure, documentation; declared-first, detected-fallback; exclusion is a recorded state, never silence
+
+**Status:** Decided · **Resolves:** how non-application repos (infrastructure, libraries, documentation, tooling) are excluded from — or partially included in — collection, in both the baseline and update flows · **Builds on:** ADR-020 (scoping), ADR-025 (active-repo inventory), F-03 (determinants), the "absence of evidence must never mean no dependency" invariant
+
+**Context.** A 10,000-repo estate is not 10,000 applications. A large fraction is infrastructure-as-code, shared libraries, documentation, and tooling. Treating them all as applications wastes the extraction fleet and pollutes the graph with junk candidates. But naive exclusion is worse than waste, three ways: **IaC repos declare the estate's datasets** — topics, buckets, queues, databases, ownership tags — and FR-C1 explicitly names IaC a signal source, so dropping them discards identity evidence; **library repos shape consumer lineage** — a serialization library's field mapping or a data-access helper changes what consumers emit, which is exactly the determinant problem F-03 exists for; and **silent exclusion is a coverage lie** — a repo nobody scanned must be distinguishable from a repo with no lineage.
+
+**Decision.** Every repo (or monorepo subtree) in collection scope carries a **classification**: `application` · `library` · `infrastructure` · `documentation` · `tooling` · `unknown`.
+
+1. **Declared-first.** `throughline.yaml` gains an optional `kind:` field per repo/subtree (monorepos mix kinds: a docs subtree inside an application repo classifies independently). A declaration always wins and is reviewed like any manifest change.
+2. **Detected-fallback.** Absent a declaration, archetype detection classifies from evidence: build files and deployable-artifact definitions → `application`; published-package manifests without a deployable → `library`; dominant IaC file share → `infrastructure`; no code → `documentation`. Low-confidence detection yields `unknown`, which gets a **scan-light pass** (cheap Tier-1 sweep to check whether anything lineage-relevant exists) and a steward confirmation item — never a silent guess in either direction.
+3. **Per-class treatment** (normative table in [04-collection-workflow-spec.md](04-collection-workflow-spec.md) §8):
+   - `application` — full extraction in both flows.
+   - `library` — **no direct edge extraction**; registered as a *determinant source*. A library release is recorded (name, version, digest) but triggers no extraction of its own: its lineage effect materializes through **consumers** — a dependency-manifest/lockfile bump in an application repo is a determinant change there (F-03), which drives the consumer's own incremental run. Unpinned/latest-tag consumption is the gap; the nightly rescan covers it, and the divergence metric would expose a systematic hole.
+   - `infrastructure` — **resource-declaration extraction only**: Tier-1 parse of Terraform/CloudFormation/CDK for datasets, topics, queues, and ownership, emitted as entity candidates and identity evidence (`sca` signal, declaration facets). No transform edges — IaC declares that things exist, not how data flows through them.
+   - `documentation` / `tooling` — excluded from extraction, zero compute.
+4. **Exclusion is a recorded, reversible state.** Every classified-out repo appears in the app coverage report as `excluded:<class>` — visible, auditable, filterable — alongside `dormant` (ADR-025). Reclassification (declaration change, steward decision, or detection flip on new evidence) is an event that re-enters the repo through the baseline flow. Nothing ever just disappears from scope.
+
+**Why.** This turns "exclude the noise" from an allow-list guess into a typed contract with per-class behavior: the fleet spends compute only where lineage can exist, IaC's identity evidence is kept, library influence flows through the determinant machinery that already exists instead of a bespoke library analyzer, and the coverage report stays honest about what was deliberately not scanned.
+
+**Alternatives considered.**
+- **Scan everything** — burns the [08](08-scale-resilience-observability.md) §1 budget on repos that cannot produce lineage and floods review inboxes with junk proposals; rejected.
+- **Manual allow-list of application repos** — rots immediately at 10k scale and is merge-bound (the F-05 failure shape); rejected.
+- **Name/path heuristics only** (`*-docs`, `terraform-*`) — wrong in both directions with no confidence signal and no override path; rejected as sole mechanism (patterns may inform detection, never decide it).
+- **Extract libraries directly** (analyze library code for potential lineage) — produces edges with no deployable context that double-count once consumers are analyzed; rejected — libraries influence lineage through consumers, and determinants already model that.
+
+**Consequences.** The Business App registry stores classification per member repo; baseline fan-out routes per class ([04](04-collection-workflow-spec.md) §1); the incremental classifier gains a class check as its first gate ([04](04-collection-workflow-spec.md) §2); the coverage dashboard shows the classification distribution and `excluded:*` states ([05](05-approval-ui-spec.md)); stewards can reclassify from the UI. Detection rules are code-reviewed configuration, versioned with the toolchain hash like the classifier rule packs.
+**Revisit trigger:** evidence of systematic misclassification (e.g. divergence findings tracing to an `excluded` repo) → tighten detection or force scan-light on the affected class.
+
+---
+
 ## Summary table
 
 | ADR | Decision | Status |
@@ -243,3 +273,4 @@ Reconciliation then **preserves disagreements as conflicts** (the existing rule:
 | 026 | Distributed Map fan-out, priority lanes, DLQ/replay, correlation-ID tracing + per-flow status records | Decided |
 | 027 | One canonical OpenLineage-aligned schema for SCA/LLM/runtime; uniform structure, signal-constrained assertions | Decided |
 | 028 | Feature-flagged sidecar runtime collection in integration tests, off in production; digest-level corroboration, Probable ceiling in prod context | Decided |
+| 029 | Repo classification (application/library/infrastructure/documentation): declared-first, detected-fallback; per-class treatment; exclusion is a recorded state | Decided |

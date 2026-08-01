@@ -16,7 +16,18 @@ stateDiagram-v2
   ResolveMembership --> FanOut
   FanOut: Distributed Map over member repos\n(concurrency-capped, backfill lane)
   state FanOut {
-    [*] --> Fetch: per repo
+    [*] --> ClassifyRepo: per repo
+    ClassifyRepo: Classification (ADR-029)\ndeclared kind → detected → unknown
+    ClassifyRepo --> Excluded: documentation | tooling
+    Excluded: Record excluded-class\ncoverage state, zero compute
+    Excluded --> [*]
+    ClassifyRepo --> LibraryReg: library
+    LibraryReg: Register determinant source\n(name, version, digest) — no extraction
+    LibraryReg --> [*]
+    ClassifyRepo --> InfraExtract: infrastructure
+    InfraExtract: Resource-declaration extraction only\n(entities + identity evidence, no transform edges)
+    InfraExtract --> [*]
+    ClassifyRepo --> Fetch: application | unknown (scan-light)
     Fetch: Shallow clone @ default-branch SHA
     Fetch --> ResolveManifest
     ResolveManifest: throughline.yaml + lineage/*.yaml\n(missing → scaffold PR, continue)
@@ -50,7 +61,11 @@ Triggered by row 4 (push). Deliberately lightweight: the baseline already exists
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Classify: repo.push
+  [*] --> ClassGate: repo.push
+  ClassGate: Repo-class gate (ADR-029)
+  ClassGate --> ClassExit: documentation | tooling → no-impact\nlibrary → record release, no extraction\ninfrastructure → declaration delta only
+  ClassExit --> [*]
+  ClassGate --> Classify: application
   Classify: Rule-based change classifier\nchanged paths ∩ manifest globs\n∩ determinant sets ∩ rule packs
   Classify --> NoImpact: no lineage-relevant change
   NoImpact: Record verdict + evidence\n(flow-status record)
@@ -183,4 +198,18 @@ Additive-first: new optional fields and new facets are minor versions; removing 
 
 ## 7. Determinant-set contract (F-03)
 
-Per emitted edge, the extractor records every input whose content contributed to deriving it: files (always), symbols (where resolution occurred), config keys (profiles, bean qualifiers, serialization annotations), each with a content hash. Invalidation rule: **an edge is re-derived iff any determinant's content hash changes** — sound and still incremental. The classifier (§2) consumes the inverted index (determinant → edges); the nightly divergence metric (§4) is the standing proof the index is honest. Determinant sets ship inside the artifact and as the `tl.determinants` facet, so the graph core can answer "why does this edge exist" with evidence.
+Per emitted edge, the extractor records every input whose content contributed to deriving it: files (always, including dependency manifests/lockfiles — which is how library version bumps drive re-derivation, ADR-029), symbols (where resolution occurred), config keys (profiles, bean qualifiers, serialization annotations), each with a content hash. Invalidation rule: **an edge is re-derived iff any determinant's content hash changes** — sound and still incremental. The classifier (§2) consumes the inverted index (determinant → edges); the nightly divergence metric (§4) is the standing proof the index is honest. Determinant sets ship inside the artifact and as the `tl.determinants` facet, so the graph core can answer "why does this edge exist" with evidence.
+
+## 8. Repo classification contract (ADR-029)
+
+Classification is resolved before any extraction, in both flows: **declared `kind:` in `throughline.yaml` (per repo or monorepo subtree) → archetype detection → `unknown`** (scan-light + steward confirmation). The per-class treatment is normative:
+
+| Class | Baseline flow (Process 1) | Update flow (Process 2) | Coverage state |
+|---|---|---|---|
+| `application` | Full extraction | Class gate passes → change classifier → selective re-derivation | `automated` (or `error`) |
+| `library` | Register as determinant source (name, version, digest); **no extraction** | Push → record release event only. Consumer effect arrives via the consumer's own dependency-manifest/lockfile determinant change (§7); unpinned consumption is covered by the nightly rescan | `library` (tracked, not extracted) |
+| `infrastructure` | Resource-declaration extraction only: Tier-1 IaC parse → dataset/topic/queue/DB entity candidates + ownership, as identity evidence. No transform edges | Push → declaration delta only (cheap); entity adds/retires flow to identity resolution | `automated:declarations` |
+| `documentation` / `tooling` | Zero compute | Immediate no-impact exit, verdict recorded | `excluded:documentation` / `excluded:tooling` |
+| `unknown` | Scan-light Tier-1 sweep; steward confirmation item | Treated as `application` until confirmed (safe direction: over-scan, never under-scan) | `unclassified` |
+
+Rules: a declaration always wins over detection; detection rules are code-reviewed, versioned configuration (like the classifier rule packs); every excluded repo is visible in the app coverage report — **exclusion is a state, never an absence**; reclassification is an event that re-enters the repo through the baseline flow (trigger row 3 handles classification deltas alongside inventory deltas).

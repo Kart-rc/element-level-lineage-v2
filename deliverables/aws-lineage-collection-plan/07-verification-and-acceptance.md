@@ -12,6 +12,7 @@ The pilot acceptance table in [../lineage-collection-assessment.md](../lineage-c
 | Area | Required evidence |
 |---|---|
 | Zero-touch | From app registration to published baseline with **zero human actions**; audit shows every collection flow originated from a [trigger-matrix](03-trigger-matrix.md) row; no manual invoke path exists in the deployed IaC (checked by policy scan of API routes and console-visible entry points) |
+| Repo classification | Every in-scope repo carries a class; `documentation`/`tooling` pushes cost zero extraction compute; library releases recorded and consumer re-derivation observed on a dependency bump; an infrastructure repo contributes entity declarations and no transform edges; every exclusion visible as `excluded:<class>` in coverage; a steward reclassification re-enters the repo through baseline |
 | Two-process split | Baseline runs app-scoped (membership from catalog ∩ active inventory); incremental runs repo-scoped; classifier fast-path verdicts recorded with evidence; **nightly incremental-vs-full divergence rate within agreed target and trending flat** (the F-03 detector) |
 | Canonical schema | 100 % of ingested events validate against the registry `(schemaVersion, signal)`; assertion-violation DLQ empty in steady state; a deliberate violation test per signal is rejected with the correct reason |
 | Approval loop | ≥ 1 full cycle delta → per-edge decisions → finalize → immutable record (hash chain verifies) → trust promotion; before/after captured on every correction; material edges show explicit acknowledgement; bulk-accept of material edges is impossible by construction |
@@ -70,6 +71,7 @@ All 12 components map to [02-aws-architecture.md](02-aws-architecture.md) §2 ro
 | ADR-026 | Applies ADR-017 observability posture to the collection plane |
 | ADR-027 | Executable form of the responsibility matrix + envelope; aligns with ADR-007 conflict preservation |
 | ADR-028 | Deployment vehicle for the assessment's `RuntimeLineageObservation` contract; preserves the cross-environment rule |
+| ADR-029 | Applies ADR-011.5 declaration-over-guessing and the coverage-truth invariant to repo scope itself |
 
 ### 4.4 Coverage checklists (audited before each release of this package)
 
@@ -77,7 +79,7 @@ All 12 components map to [02-aws-architecture.md](02-aws-architecture.md) §2 ro
 - **17/17** trigger rows present, each with lane tag; the no-manual-invoke closing statement intact ([03](03-trigger-matrix.md) §2).
 - **7/7** consumer-contract states rendered ([05](05-approval-ui-spec.md) §4).
 - **7/7** signals in the assertion-constraint table ([04](04-collection-workflow-spec.md) §5.2).
-- Sponsor-revision checklist: two-process split ✓ (04 §1–2) · test-automation + CloudWatch context sources ✓ (ADR-025) · rule-based fast path ✓ (04 §2) · before/after capture ✓ (ADR-024, 05 §7) · 10k-repo scale + spikes + E2E visibility ✓ (ADR-026, 08) · consistent schema across SCA/LLM/runtime with stated pushback ✓ (ADR-027) · feature-flagged sidecar runtime in integration tests, off in prod ✓ (ADR-028).
+- Sponsor-revision checklist: two-process split ✓ (04 §1–2) · test-automation + CloudWatch context sources ✓ (ADR-025) · rule-based fast path ✓ (04 §2) · before/after capture ✓ (ADR-024, 05 §7) · 10k-repo scale + spikes + E2E visibility ✓ (ADR-026, 08) · consistent schema across SCA/LLM/runtime with stated pushback ✓ (ADR-027) · feature-flagged sidecar runtime in integration tests, off in prod ✓ (ADR-028) · infrastructure/library/documentation repo handling in both flows ✓ (ADR-029, 04 §8).
 
 ## 5. Verifying this document set itself
 

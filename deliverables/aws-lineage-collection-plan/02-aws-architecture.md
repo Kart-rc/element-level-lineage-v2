@@ -59,7 +59,7 @@ The required pipeline components are defined in [../platform-10-de-review/README
 
 | Component | AWS realization | Governing ADR |
 |---|---|---|
-| Business App registry | **DynamoDB** table + registration API (`POST /v1/apps`): `{appId, name, team, domain, repos[], serviceUrns[], environments[]}`; registration emits `onboarding.registered`. Seeded from the service catalog; catalog sync keeps it honest | ADR-020 |
+| Business App registry | **DynamoDB** table + registration API (`POST /v1/apps`): `{appId, name, team, domain, repos[], serviceUrns[], environments[]}` with per-member-repo **classification** (`application`/`library`/`infrastructure`/`documentation`/`tooling`/`unknown`, ADR-029); registration emits `onboarding.registered`, reclassification emits `repo.classified`. Seeded from the service catalog; catalog sync keeps it honest | ADR-020, ADR-029 |
 | Test-automation inventory adapter | **Lambda** (scheduled + onboarding-triggered) pulling the active-repo set; emits `repo.inventory.delta` | ADR-025 |
 | CloudWatch interaction pipeline | **CloudWatch Logs subscription filters → Firehose → S3/Iceberg**; scheduled **Glue/Athena** aggregation → `CloudWatchInteractionAggregate` observations through the ingest gateway. Raw log lines never enter the graph (metadata-only boundary) | ADR-025 |
 | Tier-3 LLM extraction | **Amazon Bedrock** (pinned model versions, temperature 0), fronted by the **content-addressed cache**: DynamoDB key `(codeSliceHash, schemaHash, modelVersion, promptVersion)` → S3 result. Cache is central and shared (F-04) — never per-runner. Bedrock batch inference for nightly re-extraction waves. Secret-scanning before prompt assembly (Deep Dive security posture). **Only deterministic edges can ever fail a build** | ADR-021, F-04 |
