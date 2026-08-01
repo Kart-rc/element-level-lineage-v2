@@ -1,8 +1,8 @@
 # AWS End-to-End Lineage Collection Architecture
 
-**Status:** Approved design  
-**Date:** 2026-08-01  
-**Scope:** Baseline and incremental lineage collection for an enterprise estate of up to 10,000 repositories  
+**Status:** Approved design
+**Date:** 2026-08-01
+**Scope:** Baseline and incremental lineage collection for an enterprise estate of up to 10,000 repositories
 
 ## 1. Executive Summary
 
@@ -1158,4 +1158,3 @@ measurements.
 - [Amazon Neptune transaction isolation](https://docs.aws.amazon.com/neptune/latest/userguide/transactions-neptune.html)
 - [OpenSearch Multi-AZ with Standby](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/managedomains-multiaz.html)
 - [Amazon Bedrock data protection](https://docs.aws.amazon.com/bedrock/latest/userguide/data-protection.html)
-
