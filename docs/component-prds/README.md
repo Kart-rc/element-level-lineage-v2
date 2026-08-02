@@ -1,7 +1,7 @@
 # AWS Lineage Collection Component PRDs
 
 **Package status:** Complete and mechanically validated implementation specification
-**Scope:** Approved end-to-end AWS lineage collection platform  
+**Scope:** Approved end-to-end AWS lineage collection platform
 **Design date:** 2026-08-02
 
 This package converts the approved lineage architecture into product and test

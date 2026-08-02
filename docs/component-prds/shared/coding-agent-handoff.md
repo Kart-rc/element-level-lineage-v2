@@ -1,6 +1,6 @@
 # Coding-Agent Implementation Handoff
 
-**Status:** Normative execution contract for implementation agents  
+**Status:** Normative execution contract for implementation agents
 **Start here after:** README, system context, contract catalog, state/error model,
 test strategy, integration matrix and implementation sequence
 

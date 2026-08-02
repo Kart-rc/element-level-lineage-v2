@@ -1,6 +1,6 @@
 # Implementation Sequence and Phase Gates
 
-**Status:** Normative build order for the first production implementation  
+**Status:** Normative build order for the first production implementation
 **Audience:** Coding agents, engineering owners, QA, security, SRE and release
 management
 

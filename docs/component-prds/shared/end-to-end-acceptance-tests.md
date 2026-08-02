@@ -1,8 +1,8 @@
 # End-to-End Acceptance Tests
 
-**Status:** Normative launch specification  
+**Status:** Normative launch specification
 **Execution environment:** Production-shaped nonproduction AWS organization,
-primary Region and warm-standby Region  
+primary Region and warm-standby Region
 **Result authority:** Signed TestEvidenceManifest in immutable evidence storage
 
 ## 1. Purpose and Global Rules

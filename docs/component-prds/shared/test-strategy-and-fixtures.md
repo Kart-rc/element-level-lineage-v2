@@ -1,6 +1,6 @@
 # Test Strategy and Canonical Fixtures
 
-**Status:** Normative implementation, integration, and launch specification  
+**Status:** Normative implementation, integration, and launch specification
 **Applies to:** All C01-C18 code, contracts, infrastructure, clients and
 operational workflows
 

@@ -1,6 +1,6 @@
 # Shared State and Error Model
 
-**Status:** Normative  
+**Status:** Normative
 **Applies to:** C01-C18
 
 ## 1. Design Rule

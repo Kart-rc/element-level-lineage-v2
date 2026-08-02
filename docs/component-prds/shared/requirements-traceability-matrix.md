@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-**Status:** Normative machine-validated coverage register  
+**Status:** Normative machine-validated coverage register
 **Scope:** All P0 functional, nonfunctional, security and observability
 requirements in C01-C18
 

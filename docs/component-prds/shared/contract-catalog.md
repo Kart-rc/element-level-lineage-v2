@@ -1,6 +1,6 @@
 # Shared Contract Catalog
 
-**Status:** Normative  
+**Status:** Normative
 **Contract owners:** C01 (schema/identity), named producer (content), C12
 (immutable persistence conventions)
 

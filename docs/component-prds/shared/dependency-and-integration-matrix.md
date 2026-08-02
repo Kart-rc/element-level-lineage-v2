@@ -1,6 +1,6 @@
 # Dependency and Integration Test Matrix
 
-**Status:** Normative implementation and launch specification  
+**Status:** Normative implementation and launch specification
 **Applies to:** C01-C18, external producers, AWS dependencies, user clients and
 enterprise control systems
 

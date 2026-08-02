@@ -1,6 +1,6 @@
 # System Context and Architecture
 
-**Status:** Normative shared specification  
+**Status:** Normative shared specification
 **Scope:** Baseline, incremental, and integration-runtime collection through
 approved graph/search publication and operation
 
