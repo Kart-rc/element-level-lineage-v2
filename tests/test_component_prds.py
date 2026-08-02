@@ -224,6 +224,49 @@ class SharedSpecificationTests(unittest.TestCase):
         for behavior in ("retry", "quarantine", "DLQ", "redrive", "replay", "audit"):
             self.assertIn(behavior, source)
 
+    def test_dependency_matrix_defines_every_declared_boundary_and_test_dimension(self):
+        path = PRD_ROOT / "shared" / "dependency-and-integration-matrix.md"
+        self.assertTrue(path.exists(), "dependency and integration matrix is missing")
+        source = read(path)
+        declared = set()
+        for relative_path in EXPECTED_COMPONENTS.values():
+            declared.update(re.findall(r"\bINT-\d{3}\b", read(PRD_ROOT / relative_path)))
+        defined = set(re.findall(r"^\|\s*(INT-\d{3})\s*\|", source, re.MULTILINE))
+        self.assertEqual(declared, defined, "shared matrix must define every and only declared INT ID")
+        for component_id in EXPECTED_COMPONENTS:
+            self.assertIn(component_id, source)
+        for dimension in (
+            "positive",
+            "negative",
+            "duplicate",
+            "compatibility",
+            "timeout/recovery",
+            "observability",
+        ):
+            self.assertIn(dimension, source)
+
+    def test_test_strategy_defines_fixtures_layers_faults_and_evidence(self):
+        path = PRD_ROOT / "shared" / "test-strategy-and-fixtures.md"
+        self.assertTrue(path.exists(), "test strategy and fixtures are missing")
+        source = read(path)
+        for token in (
+            "FX-PILOT",
+            "FX-MIXED-MONOREPO",
+            "FX-SHARED-LIBRARY",
+            "FX-INFRASTRUCTURE",
+            "FX-CONTRACT",
+            "FX-RUNTIME",
+            "Local contract layer",
+            "Deployed integration layer",
+            "Production-shaped acceptance layer",
+            "deterministic clock",
+            "fault injection",
+            "flaky-test policy",
+            "retained evidence",
+            "10,000 repositories",
+        ):
+            self.assertIn(token, source)
+
 
 class ComponentSpecificTests(unittest.TestCase):
     def test_c01_identity_spec_is_implementation_ready(self):
