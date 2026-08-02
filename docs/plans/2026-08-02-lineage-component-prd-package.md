@@ -521,7 +521,7 @@ git commit -m "docs: define lineage system contracts and state model"
 Run:
 
 ```bash
-python -m pytest tests/test_component_prds.py -v
+python3 -m unittest tests.test_component_prds -v
 ```
 
 Expected: all package, section, ID, placeholder, link, boundary, and
@@ -532,7 +532,7 @@ traceability tests PASS.
 Run:
 
 ```bash
-python -m pytest -v
+python3 -m unittest discover -s tests -v
 ```
 
 Expected: all existing and new tests PASS.
@@ -580,5 +580,5 @@ The documentation work is complete only when:
   load/fairness.
 - The coding-agent handoff defines exact build order, repository layout,
   technology choices, commands, invariants, and stop conditions.
-- `python -m pytest -v` and `git diff --check` pass.
+- `python3 -m unittest discover -s tests -v` and `git diff --check` pass.
 - The completion audit finds no missing or weakly supported requirement.
