@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.throughline.internal/collection/determinant-set/1.0.0",
+  "title": "Per-edge determinant set (F-03)",
+  "x-source": [
+    "deliverables/aws-lineage-collection-plan/04-collection-workflow-spec.md §7 (determinant-set contract)"
+  ],
+  "x-normativity": "Shape is normative here; the invalidation rule ('an edge is re-derived iff any determinant's content hash changes') and the inverted-index consumption by X2 are specified in the prose.",
+  "type": "object",
+  "required": ["edgeId", "determinants"],
+  "properties": {
+    "edgeId": { "type": "string", "description": "Stable edge identifier within the artifact (see lineage-artifact.schema.json)" },
+    "determinants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["file", "contentHash"],
+        "properties": {
+          "file": { "type": "string", "description": "Repo-relative path. Always present — includes dependency manifests and lockfiles (this is how library version bumps drive consumer re-derivation, ADR-029)" },
+          "symbol": { "type": "string", "description": "Symbol where resolution occurred, when applicable" },
+          "configKey": { "type": "string", "description": "Config key (profile, bean qualifier, serialization annotation), when applicable" },
+          "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

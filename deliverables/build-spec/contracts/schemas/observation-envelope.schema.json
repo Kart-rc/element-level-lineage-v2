@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.throughline.internal/collection/observation-envelope/1.0.0",
+  "title": "Canonical lineage observation envelope",
+  "x-source": [
+    "deliverables/lineage-collection-assessment.md §'2. Versioned ingestion envelope' (envelope fields, verbatim)",
+    "deliverables/aws-lineage-collection-plan/04-collection-workflow-spec.md §5.1 (payload shape, tl.* facets)",
+    "deliverables/aws-lineage-collection-plan/04-collection-workflow-spec.md §5.2 (assertion-constraint table, encoded as per-signal allOf branches)"
+  ],
+  "x-normativity": "For shape questions this file is normative; the prose sections cited in x-source govern semantics. ADR-027 governs evolution (additive-first; breaking changes require a dual-publish window).",
+  "type": "object",
+  "required": [
+    "eventId", "eventType", "schemaVersion", "producer", "environment",
+    "observedAt", "emittedAt", "orderingKey", "idempotencyKey", "payloadHash",
+    "provenance", "payload"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "description": "ULID; doubles as the correlationId of the originating trigger (ADR-026)", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "eventType": { "type": "string", "const": "lineage.observation" },
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
+    "producer": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    },
+    "environment": { "type": "string", "minLength": 1, "description": "Mandatory; cross-environment corroboration is rejected downstream (identity contract)" },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "emittedAt": { "type": "string", "format": "date-time" },
+    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "deploymentId": { "type": "string" },
+    "artifactDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "orderingKey": { "type": "string", "description": "Canonical target or edge URN; maps to SQS MessageGroupId on FIFO lanes (ADR-022)" },
+    "idempotencyKey": { "type": "string", "minLength": 1 },
+    "payloadHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "provenance": {
+      "type": "object",
+      "required": ["signal"],
+      "properties": {
+        "signal": {
+          "type": "string",
+          "enum": ["sca", "llm", "spark-ol", "airflow-ol", "warehouse", "cloudwatch-agg", "otel-agg", "sidecar-test", "registry", "declared"]
+        },
+        "tier": { "type": "integer", "enum": [1, 2, 3] },
+        "artifactOrRunId": { "type": "string" },
+        "extractorVersion": { "type": "string" },
+        "parserVersion": { "type": "string" },
+        "promptVersion": { "type": "string" },
+        "modelVersion": { "type": "string" },
+        "testRunId": { "type": "string", "description": "sidecar-test only: the test-automation run that produced this evidence (ADR-028)" },
+        "flagState": { "type": "string", "description": "sidecar-test only: recorded feature-flag state at emission (ADR-028)" }
+      }
+    },
+    "payload": { "$ref": "#/$defs/observationPayload" }
+  },
+  "$defs": {
+    "urn": { "type": "string", "pattern": "^urn:tl:[^:]+:[^:]+:[^:]+:.+$", "description": "urn:tl:{environment}:{entityType}:{authority}:{path}[#{element}] — HLD §1.1" },
+    "tlPath": {
+      "type": "object",
+      "required": ["pathId"],
+      "properties": {
+        "pathId": { "type": "string" },
+        "guard": { "type": "string" },
+        "codeRef": { "type": "string" },
+        "frequency": { "type": "number", "minimum": 0 }
+      }
+    },
+    "tlTransform": {
+      "type": "object",
+      "required": ["expression", "language", "provenance"],
+      "properties": {
+        "expression": { "type": "string" },
+        "language": { "type": "string" },
+        "provenance": { "type": "string" }
+      }
+    },
+    "tlDeterminant": {
+      "type": "object",
+      "required": ["file", "contentHash"],
+      "properties": {
+        "file": { "type": "string" },
+        "symbol": { "type": "string" },
+        "configKey": { "type": "string" },
+        "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "tlInteraction": {
+      "type": "object",
+      "required": ["peer", "channel", "count", "recency"],
+      "properties": {
+        "peer": { "$ref": "#/$defs/urn" },
+        "channel": { "type": "string", "description": "http | grpc | kafka | sqs | s3 | jdbc | ..." },
+        "count": { "type": "integer", "minimum": 1 },
+        "recency": { "type": "string", "format": "date-time" },
+        "errorRate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "latencyP95Ms": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false,
+      "description": "Aggregates only — never per-request records (metadata-only boundary, ADR-025)"
+    },
+    "observationPayload": {
+      "type": "object",
+      "description": "OpenLineage-aligned observation: standard OL job/run/dataset identities plus namespaced tl.* facets",
+      "properties": {
+        "job": { "type": "object" },
+        "run": {
+          "type": "object",
+          "properties": { "runId": { "type": "string" }, "stats": { "type": "object" } }
+        },
+        "inputs": { "type": "array", "items": { "$ref": "#/$defs/olDataset" } },
+        "outputs": { "type": "array", "items": { "$ref": "#/$defs/olDataset" } },
+        "facets": {
+          "type": "object",
+          "properties": {
+            "tl.path": { "$ref": "#/$defs/tlPath" },
+            "tl.transform": { "$ref": "#/$defs/tlTransform" },
+            "tl.determinants": { "type": "array", "items": { "$ref": "#/$defs/tlDeterminant" } },
+            "tl.interaction": { "$ref": "#/$defs/tlInteraction" },
+            "tl.declaredTtl": { "type": "string", "format": "date-time", "description": "declared signal only: attestation expiry (default TTL 180 d)" }
+          }
+        }
+      }
+    },
+    "olDataset": {
+      "type": "object",
+      "required": ["urn"],
+      "properties": {
+        "urn": { "$ref": "#/$defs/urn" },
+        "facets": {
+          "type": "object",
+          "properties": {
+            "schema": { "type": "object" },
+            "columnLineage": { "type": "object" }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "x-constraint": "sca MUST NOT assert runtime evidence (workflow-spec §5.2 row 1)",
+      "if": { "properties": { "provenance": { "properties": { "signal": { "const": "sca" } } } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "run": { "not": { "required": ["stats"] } },
+              "facets": {
+                "properties": { "tl.path": { "not": { "required": ["frequency"] } } },
+                "not": { "required": ["tl.interaction"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "x-constraint": "llm MUST NOT assert authoritative types (dataset schema facets), any confidence field (at any payload level — LLM self-confidence is excluded from scoring by design), or runtime fields (workflow-spec §5.2 row 2). Proposed column mappings (columnLineage) remain permitted — §5.2 explicitly allows the llm signal to propose mappings; only authoritative type/schema claims are forbidden.",
+      "if": { "properties": { "provenance": { "properties": { "signal": { "const": "llm" } } } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "not": { "required": ["confidence"] },
+            "properties": {
+              "run": { "not": { "required": ["stats"] } },
+              "inputs": { "items": { "properties": { "facets": { "not": { "anyOf": [ { "required": ["schema"] }, { "required": ["confidence"] } ] } } } } },
+              "outputs": { "items": { "properties": { "facets": { "not": { "anyOf": [ { "required": ["schema"] }, { "required": ["confidence"] } ] } } } } },
+              "facets": {
+                "properties": { "tl.path": { "not": { "required": ["frequency"] } } },
+                "not": { "anyOf": [ { "required": ["tl.interaction"] }, { "required": ["confidence"] } ] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "x-constraint": "cloudwatch-agg / otel-agg MUST NOT assert column/field mappings of any kind (workflow-spec §5.2 row 4)",
+      "if": { "properties": { "provenance": { "properties": { "signal": { "enum": ["cloudwatch-agg", "otel-agg"] } } } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "inputs": { "items": { "properties": { "facets": { "not": { "required": ["columnLineage"] } } } } },
+              "outputs": { "items": { "properties": { "facets": { "not": { "required": ["columnLineage"] } } } } },
+              "facets": { "not": { "anyOf": [ { "required": ["tl.transform"] }, { "required": ["tl.determinants"] } ] } }
+            },
+            "required": ["facets"]
+          }
+        }
+      }
+    },
+    {
+      "x-constraint": "sidecar-test MUST NOT carry production environment tags — arrival with a prod tag is a misconfiguration alarm, not a signal (ADR-028). The Probable ceiling in prod context is enforced in scoring, not here.",
+      "if": { "properties": { "provenance": { "properties": { "signal": { "const": "sidecar-test" } } } } },
+      "then": {
+        "properties": {
+          "environment": { "not": { "enum": ["prod", "production"] } },
+          "provenance": { "required": ["signal", "testRunId"] },
+          "artifactDigest": { "pattern": "^sha256:[0-9a-f]{64}$" }
+        },
+        "required": ["commitSha", "artifactDigest"]
+      }
+    },
+    {
+      "x-constraint": "registry MUST NOT assert transforms or execution evidence (workflow-spec §5.2 row 6)",
+      "if": { "properties": { "provenance": { "properties": { "signal": { "const": "registry" } } } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "run": { "not": { "required": ["stats"] } },
+              "facets": { "not": { "anyOf": [ { "required": ["tl.transform"] }, { "required": ["tl.interaction"] } ] } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "x-constraint": "declared edges carry a TTL (default 180 d; decay to Inferred on expiry — trigger row 14). The 'no Verified without runtime' ceiling is enforced in scoring.",
+      "if": { "properties": { "provenance": { "properties": { "signal": { "const": "declared" } } } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": { "facets": { "required": ["tl.declaredTtl"] } },
+            "required": ["facets"]
+          }
+        }
+      }
+    }
+  ],
+  "x-non-schema-constraints": [
+    "spark-ol/airflow-ol/warehouse: 'MUST NOT claim complete coverage when facets are absent' is a coverage-accounting rule (coverage measured per operation, not per event) — enforced by X4/coverage accounting, not expressible here.",
+    "Metadata-only boundary: the gateway (B7) rejects value-bearing fields by content inspection beyond structural validation.",
+    "Cross-environment corroboration rejection is an identity-resolution rule applied downstream of validation.",
+    "The payload stays structurally open for additive evolution (ADR-027 additive-first); the per-signal branches prohibit the named forbidden paths, and the gateway's content inspection covers undeclared fields — a fully closed payload (unevaluatedProperties) would break minor-version evolution and is deliberately not used."
+  ]
+}

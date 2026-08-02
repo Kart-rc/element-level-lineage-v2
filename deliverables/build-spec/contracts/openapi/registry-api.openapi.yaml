@@ -1,0 +1,112 @@
+openapi: 3.1.0
+info:
+  title: Throughline Business App Registry API
+  version: 1.0.0
+  description: >
+    Registration and classification surface of the Business App registry (component B1).
+    x-source: deliverables/aws-lineage-collection-plan/02-aws-architecture.md §3 (registry object),
+    05-approval-ui-spec.md §5 endpoint 21, 01-decision-records.md ADR-020/ADR-029.
+    Registration emits trigger row 1 (onboarding.registered); reclassification emits repo.classified (row 3).
+    No endpoint here (or anywhere) means "run collection now" — the no-manual-invoke invariant (ADR-023).
+servers:
+  - url: /v1
+security:
+  - oidc: []
+paths:
+  /apps:
+    post:
+      operationId: registerApp
+      summary: Register a Business Application (endpoint 21; emits onboarding.registered)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppRegistration'
+      responses:
+        '201':
+          description: Registered; baseline collection is now in flight (zero-touch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppRecord'
+        '409':
+          description: appId already registered (registration is idempotent on appId + identical body; a differing body conflicts)
+        '422':
+          description: Validation failure (schema, unknown repos, empty environments)
+  /apps/{appId}:
+    get:
+      operationId: getApp
+      summary: Read a Business App record (endpoint 21)
+      parameters:
+        - {name: appId, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: The record, including resolved membership and per-repo classification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppRecord'
+        '404': {description: Unknown appId}
+  /apps/{appId}/coverage:
+    get:
+      operationId: getAppCoverage
+      summary: Coverage dashboard payload (endpoint 22)
+      parameters:
+        - {name: appId, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: Latest coverage report (schemas/coverage-report.schema.json)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoverageReport'
+        '404': {description: Unknown appId}
+  /apps/{appId}/repos/{repo}/classification:
+    put:
+      operationId: reclassifyRepo
+      summary: Steward reclassification (ADR-029; emits repo.classified → trigger row 3)
+      description: >
+        Requires domain-steward or platform-admin. method is recorded as "steward" and audited.
+        The repo re-enters through the baseline flow with its new per-class treatment.
+      parameters:
+        - {name: appId, in: path, required: true, schema: {type: string}}
+        - {name: repo, in: path, required: true, schema: {type: string}, description: 'URL-encoded org/repo[//subtree]'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [class, reason]
+              properties:
+                class: {type: string, enum: [application, library, infrastructure, documentation, tooling, unknown]}
+                reason: {type: string}
+      responses:
+        '200': {description: Reclassified; repo.classified emitted}
+        '403': {description: Caller lacks steward role}
+        '404': {description: Unknown app or member repo}
+components:
+  securitySchemes:
+    oidc:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.example.internal/.well-known/openid-configuration
+  schemas:
+    AppRegistration:
+      type: object
+      required: [appId, name, team, domain, repos, environments]
+      properties:
+        appId: {type: string}
+        name: {type: string}
+        team: {type: string}
+        domain: {type: string}
+        repos: {type: array, items: {type: string}}
+        serviceUrns: {type: array, items: {type: string}}
+        environments: {type: array, items: {type: string}, minItems: 1}
+        criticalityTier: {type: integer, minimum: 1, maximum: 4}
+    AppRecord:
+      description: Full record — normative shape in ../schemas/repo-classification.schema.json
+      type: object
+    CoverageReport:
+      description: Normative shape in ../schemas/coverage-report.schema.json
+      type: object
