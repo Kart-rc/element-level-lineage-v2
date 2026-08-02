@@ -289,6 +289,56 @@ class ComponentSpecificTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_c05_context_and_determinants_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C05"]
+        self.assertTrue(path.exists(), "C05 PRD is missing")
+        source = read(path)
+        for token in (
+            "ApplicationContextSnapshot",
+            "DependencyRecord",
+            "DeterminantSet",
+            "configuration key",
+            "shared library",
+            "full-scan divergence",
+            "C05-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c06_orchestration_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C06"]
+        self.assertTrue(path.exists(), "C06 PRD is missing")
+        source = read(path)
+        for token in (
+            "Step Functions Standard",
+            "baseline workflow",
+            "incremental workflow",
+            "runtime workflow",
+            "finally",
+            "priority fairness",
+            "redrive",
+            "C06-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c07_lane_b_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C07"]
+        self.assertTrue(path.exists(), "C07 PRD is missing")
+        source = read(path)
+        for token in (
+            "Spark OpenLineage",
+            "dbt manifest",
+            "Airflow",
+            "select *",
+            "artifact digest",
+            "derivational oracle",
+            "unresolved",
+            "C07-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()
