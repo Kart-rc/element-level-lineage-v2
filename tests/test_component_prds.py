@@ -447,6 +447,60 @@ class ComponentSpecificTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_c14_ci_freshness_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C14"]
+        self.assertTrue(path.exists(), "C14 PRD is missing")
+        source = read(path)
+        for token in (
+            "Lineage drift: none",
+            "Lineage drift detected",
+            "deterministic-provenance",
+            "hotfix",
+            "already-built image",
+            "artifact digest",
+            "two deploys",
+            "full-scan divergence",
+            "C14-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c15_proposal_review_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C15"]
+        self.assertTrue(path.exists(), "C15 PRD is missing")
+        source = read(path)
+        for token in (
+            "DRAFT -> AWAITING_REVIEW",
+            "before/after",
+            "immutable proposal",
+            "bulk accept",
+            "unreviewed",
+            "200 labelled edges",
+            "six archetypes",
+            "correction rate",
+            "C15-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c16_publication_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C16"]
+        self.assertTrue(path.exists(), "C16 PRD is missing")
+        source = read(path)
+        for token in (
+            "fencing token",
+            "expected prior graph version",
+            "immutable target-version namespace",
+            "active pointer",
+            "Neptune",
+            "OpenSearch",
+            "projection watermark",
+            "rebuild",
+            "C16-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()
