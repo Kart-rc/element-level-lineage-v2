@@ -215,7 +215,7 @@ Rebase/force-push (row 6): invalidate the prior candidate by head SHA — supers
 - REQ-W3-02 (MUST) Enforce the 120 s hard timeout at the state-machine level → fail-open + warn via C9; record `outcome: fail-open`.
 - REQ-W3-03 (MUST) Pin and persist the decision tuple `{snapshotId, policyVersion, confidenceModelVersion}` on every decision.
 - REQ-W3-04 (MUST) Never wait on a cold clone: artifact fetch-or-build with shallow fetch + cached image layers (warm pool from Phase 3 if p95 demands).
-- REQ-W23-05 (MUST) Row 15: consume `toolchain.updated` by scheduling the nightly Bedrock batch wave over the content-addressed cache and a comparison report old-vs-new — never inline in PR/push paths.
+- REQ-W2-05 (MUST) Row 15: consume `toolchain.updated` by scheduling the nightly Bedrock batch wave over the content-addressed cache and a comparison report old-vs-new — never inline in PR/push paths.
 
 **Interfaces.** W2 from EventBridge rule (row 4); W3 from pr-gate lane (rows 5–6); the merge recorder (row 7) is a Lambda step of W3's family recording the merged candidate.
 
