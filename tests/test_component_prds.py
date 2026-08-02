@@ -160,12 +160,21 @@ class PackageCompletenessTests(unittest.TestCase):
         matrix = PRD_ROOT / "shared" / "requirements-traceability-matrix.md"
         self.assertTrue(matrix.exists(), "traceability matrix is missing")
         matrix_source = read(matrix)
+        covered = set(ID_RE.findall(matrix_source))
+        for prefix, start, end in re.findall(
+            r"\b(C\d{2}-(?:FR|NFR|SEC|OBS))-(\d{3})\.\.\1-(\d{3})\b",
+            matrix_source,
+        ):
+            covered.update(
+                f"{prefix}-{number:03d}"
+                for number in range(int(start), int(end) + 1)
+            )
         missing = []
         for component_id, relative_path in EXPECTED_COMPONENTS.items():
             path = PRD_ROOT / relative_path
             self.assertTrue(path.exists(), f"{component_id} PRD is missing")
             for requirement_id in P0_RE.findall(read(path)):
-                if requirement_id not in matrix_source:
+                if requirement_id not in covered:
                     missing.append(requirement_id)
         self.assertEqual(missing, [], f"P0 requirements missing traceability: {missing}")
 
@@ -297,6 +306,50 @@ class SharedSpecificationTests(unittest.TestCase):
             "Retained evidence",
         ):
             self.assertIn(token, source)
+
+    def test_traceability_build_sequence_and_handoff_are_executable(self):
+        matrix = read(PRD_ROOT / "shared" / "requirements-traceability-matrix.md")
+        for token in (
+            "Requirement set",
+            "Component test",
+            "Integration test",
+            "Phase gate",
+            "Expected evidence",
+            "P0 coverage invariant",
+        ):
+            self.assertIn(token, matrix)
+        for component_id in EXPECTED_COMPONENTS:
+            self.assertIn(component_id, matrix)
+
+        sequence = read(PRD_ROOT / "shared" / "implementation-sequence.md")
+        for phase in range(0, 10):
+            self.assertIn(f"Phase {phase}", sequence)
+        for token in (
+            "Dependency DAG",
+            "Entry Criteria",
+            "Repository Targets",
+            "Exit Criteria",
+            "Validation Commands",
+            "No component may skip",
+        ):
+            self.assertIn(token, sequence)
+
+        handoff = read(PRD_ROOT / "shared" / "coding-agent-handoff.md")
+        for token in (
+            "TypeScript 5",
+            "Python 3.12",
+            "AWS CDK v2",
+            "Contract-first",
+            "test-driven",
+            "Feature flags",
+            "Local validation commands",
+            "Deployed validation commands",
+            "Commit cadence",
+            "Non-negotiable invariants",
+            "Stop and escalate",
+            "Final evidence checklist",
+        ):
+            self.assertIn(token, handoff)
 
 
 class ComponentSpecificTests(unittest.TestCase):
