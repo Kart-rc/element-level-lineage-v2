@@ -267,6 +267,37 @@ class SharedSpecificationTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_end_to_end_spec_defines_all_mandatory_steel_threads(self):
+        path = PRD_ROOT / "shared" / "end-to-end-acceptance-tests.md"
+        self.assertTrue(path.exists(), "end-to-end acceptance tests are missing")
+        source = read(path)
+        expected = {f"E2E-{number:03d}" for number in range(1, 15)}
+        defined = set(re.findall(r"^\|\s*(E2E-\d{3})\s*\|", source, re.MULTILINE))
+        self.assertEqual(expected, defined)
+        for token in (
+            "Approved mixed-application baseline",
+            "Lane B native exactness",
+            "Lane A hole resolution",
+            "G1/G2/G4",
+            "G3/G5",
+            "Runtime complete and incomplete",
+            "Shared library and infrastructure",
+            "Documentation no-impact",
+            "UNKNOWN quarantine and replay",
+            "Hotfix missing lineage",
+            "Human correction and fenced publication",
+            "DLQ redrive and regional recovery",
+            "Production runtime hard-deny",
+            "10,000-repository enterprise load",
+            "Preconditions",
+            "Injected failures",
+            "Pass/fail rules",
+            "Security assertion",
+            "Cleanup",
+            "Retained evidence",
+        ):
+            self.assertIn(token, source)
+
 
 class ComponentSpecificTests(unittest.TestCase):
     def test_c01_identity_spec_is_implementation_ready(self):
