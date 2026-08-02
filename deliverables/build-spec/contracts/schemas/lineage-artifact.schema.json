@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.throughline.internal/collection/lineage-artifact/1.0.0",
+  "title": "Immutable candidate lineage artifact",
+  "x-source": [
+    "deliverables/lineage-collection-assessment.md §'3. Immutable candidate lineage artifact' (field list)",
+    "deliverables/aws-lineage-collection-plan/04-collection-workflow-spec.md §6 (adds the required determinants section) and §7"
+  ],
+  "x-normativity": "Shape normative here. Reproducibility invariant (prose): same commit + toolchain ⇒ identical artifact hash — checked in CI. Registry keying: S3 content-addressed at artifacts/{contentHash}; DynamoDB pointer (repo, sha, toolchainHash) → contentHash.",
+  "type": "object",
+  "required": [
+    "repo", "commitSha", "toolchainHash", "environmentIntent", "entities",
+    "edges", "determinants", "toolchain", "findings", "artifactHash", "createdAt"
+  ],
+  "properties": {
+    "repo": { "type": "string", "description": "org/repo, optionally with monorepo subtree suffix org/repo//path" },
+    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "toolchainHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "Hash over extractor image + parser versions + prompt/model versions + rule-pack versions + detection-rule versions" },
+    "environmentIntent": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["environment", "deploymentUnit"],
+        "properties": {
+          "environment": { "type": "string" },
+          "deploymentUnit": { "type": "string" }
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["urn"],
+        "properties": {
+          "urn": { "type": "string", "pattern": "^urn:tl:[^:]+:[^:]+:[^:]+:.+$" },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "schemaRef": { "type": "string" }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edgeId", "sourceUrn", "targetUrn", "level", "provenance"],
+        "properties": {
+          "edgeId": { "type": "string", "description": "Stable within the artifact; deterministic function of (sourceUrn, targetUrn, level, pathId)" },
+          "sourceUrn": { "type": "string" },
+          "targetUrn": { "type": "string" },
+          "level": { "type": "string", "enum": ["service", "dataset", "element"] },
+          "channel": { "type": "string" },
+          "transform": { "type": "object", "properties": { "expression": { "type": "string" }, "language": { "type": "string" } } },
+          "guard": { "type": "string" },
+          "codeRef": { "type": "string" },
+          "pathId": { "type": "string" },
+          "provenance": {
+            "type": "object",
+            "required": ["signal", "tier"],
+            "properties": {
+              "signal": { "type": "string", "enum": ["sca", "llm"] },
+              "tier": { "type": "integer", "enum": [1, 2, 3], "description": "1 = deterministic parser · 2 = tree-sitter candidate · 3 = LLM residue" }
+            }
+          },
+          "materiality": { "type": "string", "enum": ["material", "minor"] }
+        }
+      }
+    },
+    "determinants": {
+      "type": "array",
+      "description": "One determinant set per edge (F-03). Required section added by the AWS plan on top of the assessment's field list.",
+      "items": { "$ref": "https://schemas.throughline.internal/collection/determinant-set/1.0.0" }
+    },
+    "toolchain": {
+      "type": "object",
+      "required": ["extractorVersion"],
+      "properties": {
+        "extractorVersion": { "type": "string" },
+        "parserVersions": { "type": "object", "additionalProperties": { "type": "string" } },
+        "promptVersion": { "type": "string" },
+        "modelVersion": { "type": "string" },
+        "rulePackVersions": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "Unsupported-construct findings — visible gaps, never silent skips",
+      "items": {
+        "type": "object",
+        "required": ["kind", "location"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["unsupported-construct", "unmapped-path", "parse-error", "llm-residue-uncached"] },
+          "location": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "repoClass": { "type": "string", "enum": ["application", "library", "infrastructure", "documentation", "tooling", "unknown"], "description": "ADR-029 classification in effect at extraction time" },
+    "executionConfirmedInTest": {
+      "type": "object",
+      "description": "ADR-028 digest-level facet, attached when sidecar evidence joins this artifact's digest",
+      "properties": {
+        "testRunId": { "type": "string" },
+        "pathsExecuted": { "type": "integer", "minimum": 0 },
+        "pathsTotal": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "artifactHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  }
+}

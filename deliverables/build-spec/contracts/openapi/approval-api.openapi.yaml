@@ -1,0 +1,194 @@
+openapi: 3.1.0
+info:
+  title: Throughline Approval API
+  version: 1.0.0
+  description: >
+    Endpoints 21–29 of the platform API catalog (endpoints 1–20 are the graph-core catalog in
+    architecture-review-v8/04-high-level-design.md §7 and stay out of collection scope).
+    x-source: deliverables/aws-lineage-collection-plan/05-approval-ui-spec.md §5 (endpoint table),
+    §6 (roles), §7 (finalize mechanics). Endpoints 21–22 are defined in registry-api.openapi.yaml
+    (B1 owns them); this file carries 23–29 (B8/B9/X3 surface).
+servers:
+  - url: /v1
+security:
+  - oidc: []
+paths:
+  /proposals:
+    get:
+      operationId: listProposals
+      summary: Review inbox listing (endpoint 23)
+      parameters:
+        - {name: app, in: query, schema: {type: string}}
+        - {name: repo, in: query, schema: {type: string}}
+        - {name: status, in: query, schema: {type: string, enum: [Advisory, UnderReview, ProducerAttested, Rejected, Remediation]}}
+        - {name: materiality, in: query, schema: {type: string, enum: [material, minor]}}
+        - {name: cursor, in: query, schema: {type: string}}
+        - {name: limit, in: query, schema: {type: integer, default: 50, maximum: 200}}
+      responses:
+        '200':
+          description: Paged proposals with SLA aging
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [proposals]
+                properties:
+                  proposals:
+                    type: array
+                    items: {$ref: '#/components/schemas/ProposalSummary'}
+                  nextCursor: {type: [string, 'null']}
+  /proposals/{proposalId}:
+    get:
+      operationId: getProposal
+      summary: Full proposal — delta, evidence, materiality flags (endpoint 24)
+      parameters:
+        - {name: proposalId, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Proposal'}
+        '404': {description: Unknown proposal}
+  /proposals/{proposalId}/edges/{edgeId}/decision:
+    post:
+      operationId: decideEdge
+      summary: Per-edge decision (endpoint 25) — server captures before/after
+      description: >
+        viewer may decide on own team's edges; steward on domain edges (approval spec §6).
+        Bulk operations exist only for non-material edges — bulk-accept of material mappings
+        is structurally impossible (ADR-024).
+      parameters:
+        - {name: proposalId, in: path, required: true, schema: {type: string}}
+        - {name: edgeId, in: path, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: {type: string, enum: [acknowledge, accept, correct, reject, request-remediation]}
+                correction: {type: object, description: 'Required when action=correct: the corrected edge fields; the server snapshots before-state itself'}
+                comment: {type: string}
+      responses:
+        '200': {description: Decision recorded (mutable until finalize)}
+        '403': {description: Caller does not own this edge's decision surface}
+        '404': {description: Unknown proposal/edge}
+        '409': {description: Proposal already finalized — corrections require a new proposal}
+        '422': {description: action=correct without a correction body}
+  /proposals/{proposalId}/finalize:
+    post:
+      operationId: finalizeProposal
+      summary: Freeze decisions → immutable review record → trust promotion (endpoint 26; emits proposal.finalized, trigger row 16)
+      description: >
+        steward/admin only. Atomic per approval spec §7 — append-only Aurora rows, canonical JSON
+        hash chained via previousRecordHash, S3 Object Lock put, trust promotions applied,
+        proposal.finalized + calibration-corpus events emitted.
+      parameters:
+        - {name: proposalId, in: path, required: true, schema: {type: string}}
+      responses:
+        '201':
+          description: Review record created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [recordId, recordHash]
+                properties:
+                  recordId: {type: string}
+                  recordHash: {type: string}
+        '403': {description: Caller lacks finalize permission (viewer)}
+        '409': {description: Already finalized}
+        '422': {description: Material edges lack explicit acknowledgement}
+  /review-records/{id}:
+    get:
+      operationId: getReviewRecord
+      summary: Immutable record read/export (endpoint 27, IMP-011)
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: The record (normative shape ../schemas/review-record.schema.json) + hash-chain verification status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [record, chainVerified]
+                properties:
+                  record: {type: object}
+                  chainVerified: {type: boolean}
+        '404': {description: Unknown record}
+  /identity-merges/{candidateId}/decision:
+    post:
+      operationId: decideIdentityMerge
+      summary: Steward merge confirm/reject (endpoint 28, ADR-006 — fuzzy candidates are never auto-merged)
+      parameters:
+        - {name: candidateId, in: path, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: {type: string, enum: [approve, reject]}
+                comment: {type: string}
+      responses:
+        '200': {description: Recorded and audited}
+        '403': {description: Steward/admin only}
+        '404': {description: Unknown candidate}
+  /flows/{correlationId}/status:
+    get:
+      operationId: getFlowStatus
+      summary: '"Where is my run?" (endpoint 29, ADR-026)'
+      parameters:
+        - {name: correlationId, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: Flow-status record (normative shape ../schemas/flow-status.schema.json)
+          content:
+            application/json:
+              schema: {type: object}
+        '404': {description: Unknown or TTL-expired (>90 d) correlation ID}
+components:
+  securitySchemes:
+    oidc:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.example.internal/.well-known/openid-configuration
+  schemas:
+    ProposalSummary:
+      type: object
+      required: [proposalId, appId, status, materialCount, createdAt]
+      properties:
+        proposalId: {type: string}
+        appId: {type: string}
+        repo: {type: string}
+        status: {type: string, enum: [Advisory, UnderReview, ProducerAttested, Rejected, Remediation]}
+        materialCount: {type: integer, minimum: 0}
+        edgeCount: {type: integer, minimum: 0}
+        createdAt: {type: string, format: date-time}
+        slaAgeDays: {type: integer, minimum: 0}
+    Proposal:
+      type: object
+      required: [proposalId, appId, delta, status]
+      properties:
+        proposalId: {type: string}
+        appId: {type: string}
+        repo: {type: string}
+        status: {type: string}
+        delta: {type: object, description: 'Normative shape ../schemas/delta.schema.json'}
+        evidence:
+          type: array
+          items:
+            type: object
+            properties:
+              edgeId: {type: string}
+              signals: {type: array, items: {type: string}}
+              confidence:
+                type: object
+                properties:
+                  score: {type: integer, minimum: 0, maximum: 100}
+                  band: {type: string, enum: [verified, probable, inferred]}
+              capped: {type: boolean, description: 'true when the runtime-less cap 64 applies — surfaced in the UI as "capped at 64"'}

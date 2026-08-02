@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.throughline.internal/collection/coverage-report/1.0.0",
+  "title": "Business-App coverage report",
+  "x-source": [
+    "deliverables/aws-lineage-collection-plan/04-collection-workflow-spec.md §1 (Coverage stage) and §8 (per-class coverage states)",
+    "deliverables/aws-lineage-collection-plan/05-approval-ui-spec.md §3 screen 1 (coverage dashboard states)"
+  ],
+  "x-normativity": "Shape normative here. Invariants (prose): exclusion is a state, never an absence; dormant members are explicitly visible; a failed member repo lands as error and the app baseline still completes.",
+  "type": "object",
+  "required": ["appId", "generatedAt", "sourceFlow", "systems", "repoClassDistribution"],
+  "properties": {
+    "appId": { "type": "string" },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "sourceFlow": { "type": "string", "description": "correlationId of the flow (baseline wave, scope-reconcile, nightly) that produced this report" },
+    "systems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["subject", "state"],
+        "properties": {
+          "subject": { "type": "string", "description": "Repo (org/repo[//subtree]) or service URN, whichever granularity the row reports" },
+          "state": {
+            "type": "string",
+            "enum": [
+              "automated", "automated:declarations", "declared", "uncovered",
+              "dormant", "error", "excluded:documentation", "excluded:tooling",
+              "library", "unclassified", "stale"
+            ]
+          },
+          "reason": { "type": "string", "description": "Required for error (failure class + flow-status link) and stale (channel window exceeded)" },
+          "lastObservedAt": { "type": "string", "format": "date-time" },
+          "flowStatusRef": { "type": "string", "description": "correlationId for error rows — every error is traceable" }
+        },
+        "if": { "properties": { "state": { "enum": ["error", "stale"] } } },
+        "then": { "required": ["subject", "state", "reason"] }
+      }
+    },
+    "repoClassDistribution": {
+      "type": "object",
+      "description": "Count per ADR-029 class, rendered on the coverage dashboard",
+      "properties": {
+        "application": { "type": "integer", "minimum": 0 },
+        "library": { "type": "integer", "minimum": 0 },
+        "infrastructure": { "type": "integer", "minimum": 0 },
+        "documentation": { "type": "integer", "minimum": 0 },
+        "tooling": { "type": "integer", "minimum": 0 },
+        "unknown": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "edgeDistribution": {
+      "type": "object",
+      "description": "Percent of edges by trust rung and confidence band (integers — decimals prohibited, ADR-008)",
+      "properties": {
+        "byTrust": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 100 } },
+        "byBand": {
+          "type": "object",
+          "properties": {
+            "verified": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "probable": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "inferred": { "type": "integer", "minimum": 0, "maximum": 100 }
+          }
+        }
+      }
+    },
+    "reviewBacklog": { "type": "integer", "minimum": 0 }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.throughline.internal/collection/delta/1.0.0",
+  "title": "Versioned lineage delta",
+  "x-source": [
+    "deliverables/aws-lineage-collection-plan/04-collection-workflow-spec.md §6 (delta contract, JSON example made normative)"
+  ],
+  "x-normativity": "Consumed by the PR comment (C9), the approval UI's delta review (B8, screen 3), and the gate decision input (C8). materiality drives the per-edge acknowledgement requirement (material mappings only, ADR-024). Before/after pairs in changed are exactly what the UI renders side-by-side and what the review record freezes.",
+  "type": "object",
+  "required": ["baseArtifact", "headArtifact", "baseline", "added", "changed", "removed"],
+  "properties": {
+    "baseArtifact": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "headArtifact": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "baseline": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["environment", "prior-default-branch"], "description": "PR gate always uses 'environment' (last successful deployment, C5); push-path delta uses 'prior-default-branch'" },
+        "environment": { "type": "string" },
+        "deploymentId": { "type": "string" }
+      },
+      "if": { "properties": { "kind": { "const": "environment" } } },
+      "then": { "required": ["kind", "environment", "deploymentId"] }
+    },
+    "added": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edge", "provenance", "materiality"],
+        "properties": {
+          "edge": { "type": "object" },
+          "provenance": { "type": "string", "enum": ["sca", "llm"] },
+          "materiality": { "type": "string", "enum": ["material", "minor"] }
+        }
+      }
+    },
+    "changed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["before", "after", "changeKind"],
+        "properties": {
+          "before": { "type": "object" },
+          "after": { "type": "object" },
+          "changeKind": { "type": "string", "enum": ["transform", "guard", "schema", "channel"] }
+        }
+      }
+    },
+    "removed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["edge", "reason"],
+        "properties": {
+          "edge": { "type": "object" },
+          "reason": { "type": "string", "enum": ["code-removed", "determinant-invalidated"] }
+        }
+      }
+    },
+    "schemaDeltas": { "type": "array", "items": { "type": "object" } },
+    "coverageDelta": {
+      "type": "object",
+      "properties": {
+        "pathsConfirmed": { "type": "integer", "minimum": 0 },
+        "pathsTotal": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.throughline.internal/collection/repo-classification/1.0.0",
+  "title": "Business App registry record and per-repo classification",
+  "x-source": [
+    "deliverables/aws-lineage-collection-plan/02-aws-architecture.md §3 (Business App registry object)",
+    "deliverables/aws-lineage-collection-plan/01-decision-records.md ADR-029 (classes, declared-first/detected-fallback)",
+    "deliverables/aws-lineage-collection-plan/04-collection-workflow-spec.md §8 (per-class treatment)"
+  ],
+  "x-normativity": "Shape normative here. Per-class flow treatment (which extraction runs for which class) is the prose table in workflow-spec §8. A declaration always wins over detection.",
+  "$defs": {
+    "repoClass": {
+      "type": "string",
+      "enum": ["application", "library", "infrastructure", "documentation", "tooling", "unknown"]
+    },
+    "classification": {
+      "type": "object",
+      "required": ["repo", "class", "method", "classifiedAt"],
+      "properties": {
+        "repo": { "type": "string", "description": "org/repo or org/repo//subtree for monorepos — subtrees classify independently (ADR-029)" },
+        "class": { "$ref": "#/$defs/repoClass" },
+        "method": {
+          "type": "string",
+          "enum": ["declared", "detected", "steward"],
+          "description": "declared = kind: in throughline.yaml (always wins) · detected = archetype detection · steward = manual reclassification from the UI"
+        },
+        "detectionEvidence": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For method=detected: which archetype rules fired (rules are code-reviewed, versioned configuration)"
+        },
+        "detectionRulesVersion": { "type": "string" },
+        "confidence": { "type": "string", "enum": ["high", "low"], "description": "Low-confidence detection yields class=unknown (scan-light + steward confirmation), never a silent guess" },
+        "classifiedAt": { "type": "string", "format": "date-time" },
+        "classifiedBy": { "type": "string", "description": "For method=steward: the actor (audited)" }
+      }
+    }
+  },
+  "type": "object",
+  "required": ["appId", "name", "team", "domain", "repos", "serviceUrns", "environments", "memberRepos"],
+  "properties": {
+    "appId": { "type": "string" },
+    "name": { "type": "string" },
+    "team": { "type": "string" },
+    "domain": { "type": "string" },
+    "repos": { "type": "array", "items": { "type": "string" }, "description": "Catalog membership — the catalog remains the membership authority (ADR-025)" },
+    "serviceUrns": { "type": "array", "items": { "type": "string", "pattern": "^urn:tl:[^:]+:[^:]+:[^:]+:.+$" } },
+    "environments": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "memberRepos": {
+      "type": "array",
+      "description": "Resolved membership with activity and classification: catalog repos annotated with active-set membership (test-automation authority, ADR-025) and ADR-029 class",
+      "items": {
+        "type": "object",
+        "required": ["repo", "active", "classification"],
+        "properties": {
+          "repo": { "type": "string" },
+          "active": { "type": "boolean", "description": "In the test-automation active set; false ⇒ coverage state dormant — visible, never silently skipped" },
+          "classification": { "$ref": "#/$defs/classification" }
+        }
+      }
+    },
+    "criticalityTier": { "type": "integer", "minimum": 1, "maximum": 4, "description": "Wave-planner ordering input (08 §2): Tier-1 apps baseline first" },
+    "registeredAt": { "type": "string", "format": "date-time" },
+    "catalogSyncAt": { "type": "string", "format": "date-time" }
+  }
+}
