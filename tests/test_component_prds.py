@@ -339,6 +339,60 @@ class ComponentSpecificTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_c08_deterministic_analyzer_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C08"]
+        self.assertTrue(path.exists(), "C08 PRD is missing")
+        source = read(path)
+        for token in (
+            "Spring Boot",
+            "FastAPI",
+            "provable edges",
+            "Hole",
+            "holes_opened",
+            "byte-identical",
+            "DeterminantSet",
+            "C08-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c09_agentic_resolver_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C09"]
+        self.assertTrue(path.exists(), "C09 PRD is missing")
+        source = read(path)
+        for token in (
+            "hole-only",
+            "search",
+            "read_span",
+            "resolve_symbol",
+            "call_graph",
+            "schema_lookup",
+            "emit_edge",
+            "file:line",
+            "content-addressed",
+            "Never a guess",
+            "C09-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c10_opaque_collector_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C10"]
+        self.assertTrue(path.exists(), "C10 PRD is missing")
+        source = read(path)
+        for token in (
+            "advisory",
+            "opaque",
+            "fingerprint",
+            "minimum observation",
+            "low-cardinality",
+            "confidence cap",
+            "raw values",
+            "C10-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()
