@@ -393,6 +393,60 @@ class ComponentSpecificTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_c11_runtime_session_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C11"]
+        self.assertTrue(path.exists(), "C11 PRD is missing")
+        source = read(path)
+        for token in (
+            "REQUESTED -> ENABLING -> READY -> COLLECTING -> DRAINING",
+            "AppConfig",
+            "monotonic sequence",
+            "closing manifest",
+            "session-scoped keyed HMAC",
+            "production hard-deny",
+            "finally",
+            "C11-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c12_evidence_store_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C12"]
+        self.assertTrue(path.exists(), "C12 PRD is missing")
+        source = read(path)
+        for token in (
+            "S3 Object Lock",
+            "content-addressed",
+            "SHA-256",
+            "immutable",
+            "legal hold",
+            "cross-Region replication",
+            "projection",
+            "C12-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c13_trust_engine_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C13"]
+        self.assertTrue(path.exists(), "C13 PRD is missing")
+        source = read(path)
+        for token in (
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "drop",
+            "downgrade",
+            "structural confidence",
+            "derivational confidence",
+            "UNCALIBRATED",
+            "C13-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()
