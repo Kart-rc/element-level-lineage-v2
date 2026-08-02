@@ -501,6 +501,47 @@ class ComponentSpecificTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_c17_query_and_ui_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C17"]
+        self.assertTrue(path.exists(), "C17 PRD is missing")
+        source = read(path)
+        for token in (
+            "OpenAPI 3.1",
+            "bounded traversal",
+            "active graph version",
+            "projection watermark",
+            "structural confidence",
+            "derivational confidence",
+            "before/after",
+            "run timeline",
+            "WCAG 2.2 AA",
+            "two seconds p95",
+            "C17-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c18_operations_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C18"]
+        self.assertTrue(path.exists(), "C18 PRD is missing")
+        source = read(path)
+        for token in (
+            "IAM Identity Center",
+            "ABAC",
+            "private networking",
+            "CloudTrail",
+            "S3 data events",
+            "correlation contract",
+            "inventory-to-run reconciliation",
+            "deployment-to-lineage reconciliation",
+            "15-minute RPO",
+            "four-hour RTO",
+            "warm standby",
+            "C18-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()
