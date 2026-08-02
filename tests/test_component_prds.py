@@ -241,6 +241,54 @@ class ComponentSpecificTests(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
+    def test_c02_inventory_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C02"]
+        self.assertTrue(path.exists(), "C02 PRD is missing")
+        source = read(path)
+        for token in (
+            "RepositoryInventorySnapshot",
+            "Test Automation Service",
+            "source watermark",
+            "PARTIAL",
+            "10,000 repositories",
+            "C02-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c03_intake_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C03"]
+        self.assertTrue(path.exists(), "C03 PRD is missing")
+        source = read(path)
+        for token in (
+            "EventEnvelope",
+            "idempotency",
+            "coalescing",
+            "EventBridge archive",
+            "priority",
+            "DLQ",
+            "C03-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
+    def test_c04_eligibility_spec_is_implementation_ready(self):
+        path = PRD_ROOT / EXPECTED_COMPONENTS["C04"]
+        self.assertTrue(path.exists(), "C04 PRD is missing")
+        source = read(path)
+        for token in (
+            "APPLICATION_RUNTIME",
+            "MIXED_MONOREPO",
+            "UNKNOWN",
+            "Lane A",
+            "Lane B",
+            "Lane C",
+            "override",
+            "C04-CT-",
+            "INT-",
+        ):
+            self.assertIn(token, source)
+
 
 if __name__ == "__main__":
     unittest.main()
