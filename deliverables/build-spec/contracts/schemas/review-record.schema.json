@@ -9,7 +9,7 @@
   "x-normativity": "Shape normative here. Immutability mechanics (prose, approval spec §7): append-only Aurora rows (no UPDATE grants), canonical JSON hash, previousRecordHash chain per app, S3 Object Lock (governance mode). Records are never updated; corrections are new records referencing the old.",
   "type": "object",
   "required": [
-    "recordId", "appId", "proposalId", "decisions", "actors",
+    "recordId", "appId", "proposalId", "proposalSnapshot", "decisions", "actors",
     "finalizedAt", "recordHash", "previousRecordHash"
   ],
   "properties": {
@@ -31,7 +31,7 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["edgeId", "action", "acknowledged", "actor", "at"],
+        "required": ["edgeId", "action", "acknowledged", "materiality", "actor", "at"],
         "properties": {
           "edgeId": { "type": "string" },
           "action": { "type": "string", "enum": ["acknowledge", "accept", "correct", "reject", "request-remediation"] },
@@ -44,7 +44,7 @@
           "at": { "type": "string", "format": "date-time" }
         },
         "if": { "properties": { "action": { "const": "correct" } } },
-        "then": { "required": ["edgeId", "action", "acknowledged", "actor", "at", "before", "after"] }
+        "then": { "required": ["edgeId", "action", "acknowledged", "materiality", "actor", "at", "before", "after"] }
       }
     },
     "actors": { "type": "array", "items": { "type": "string" }, "minItems": 1 },

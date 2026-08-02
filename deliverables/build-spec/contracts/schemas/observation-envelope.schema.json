@@ -157,13 +157,16 @@
       }
     },
     {
-      "x-constraint": "llm MUST NOT assert authoritative types, any confidence field, or runtime fields (workflow-spec §5.2 row 2). LLM self-confidence is excluded from scoring by design.",
+      "x-constraint": "llm MUST NOT assert authoritative types (dataset schema facets), any confidence field (at any payload level — LLM self-confidence is excluded from scoring by design), or runtime fields (workflow-spec §5.2 row 2). Proposed column mappings (columnLineage) remain permitted — §5.2 explicitly allows the llm signal to propose mappings; only authoritative type/schema claims are forbidden.",
       "if": { "properties": { "provenance": { "properties": { "signal": { "const": "llm" } } } } },
       "then": {
         "properties": {
           "payload": {
+            "not": { "required": ["confidence"] },
             "properties": {
               "run": { "not": { "required": ["stats"] } },
+              "inputs": { "items": { "properties": { "facets": { "not": { "anyOf": [ { "required": ["schema"] }, { "required": ["confidence"] } ] } } } } },
+              "outputs": { "items": { "properties": { "facets": { "not": { "anyOf": [ { "required": ["schema"] }, { "required": ["confidence"] } ] } } } } },
               "facets": {
                 "properties": { "tl.path": { "not": { "required": ["frequency"] } } },
                 "not": { "anyOf": [ { "required": ["tl.interaction"] }, { "required": ["confidence"] } ] }
@@ -231,6 +234,7 @@
   "x-non-schema-constraints": [
     "spark-ol/airflow-ol/warehouse: 'MUST NOT claim complete coverage when facets are absent' is a coverage-accounting rule (coverage measured per operation, not per event) — enforced by X4/coverage accounting, not expressible here.",
     "Metadata-only boundary: the gateway (B7) rejects value-bearing fields by content inspection beyond structural validation.",
-    "Cross-environment corroboration rejection is an identity-resolution rule applied downstream of validation."
+    "Cross-environment corroboration rejection is an identity-resolution rule applied downstream of validation.",
+    "The payload stays structurally open for additive evolution (ADR-027 additive-first); the per-signal branches prohibit the named forbidden paths, and the gateway's content inspection covers undeclared fields — a fully closed payload (unevaluatedProperties) would break minor-version evolution and is deliberately not used."
   ]
 }

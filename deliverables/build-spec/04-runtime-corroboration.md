@@ -50,7 +50,7 @@ sequenceDiagram
   TAS->>GW: test.run.completed {testRunId, sha, digest}
   GW->>GW: validate: schema · assertion constraints · env≠prod · metadata-only
   GW->>CORE: accepted observations (test-env graph: full runtime term)
-  GW->>AR: join evidence → executionConfirmedInTest facet on the digest
+  GW->>AR: join evidence → digest-keyed test-execution annotation (stored beside the artifact, never inside it)
   Note over AR: "N of M changed paths executed under test" — available to the PR surface pre-merge (03)
 ```
 
@@ -116,7 +116,7 @@ Note the deliberate bypass: log volume goes subscription filter → Firehose →
 - REQ-B5-01 (MUST) Observe boundary I/O (HTTP/gRPC, Kafka produce/consume, S3/DB access) without app changes; accept opt-in explicitly instrumented in-process element mappings per the `RuntimeLineageObservation` contract (once per operation/path/schema version — never per row).
 - REQ-B5-02 (MUST) Emit `sidecar-test` envelopes stamped with test environment, `testRunId`, `commitSha`, `artifactDigest`, and `flagState` — evidence always attributable to the run that produced it.
 - REQ-B5-03 (MUST) Activate only by feature flag (AppConfig or org flag system), asserted ON by the test-automation service for integration runs and OFF in production by policy; the platform alarms on any `sidecar-test` envelope tagged with a production environment.
-- REQ-B5-04 (MUST) Join completed-run evidence (row 17) to the run's candidate artifact: write the `executionConfirmedInTest` facet (paths executed / paths total) on the digest in C4.
+- REQ-B5-04 (MUST) Join completed-run evidence (row 17) to the run's candidate artifact as a **digest-keyed annotation** ([`test-execution-annotation.schema.json`](contracts/schemas/test-execution-annotation.schema.json): paths executed / paths total, append-only, stored in C4 *alongside* the artifact) — never by mutating the content-addressed artifact body, whose hash and reproducibility guarantee are inviolable. Consumers join artifact + annotations at read time.
 - REQ-B5-05 (MUST) Enforce the element-mapping admission gates from the assessment §5 before any element edge is confirmable: schema conformance, no truncation, acceptable overhead, independent delivery, emitted-vs-ingested accounting, correct success/commit semantics — gates failing ⇒ interactions only.
 - REQ-B5-06 (MUST NOT) Ever raise a production edge's confidence directly (cross-environment rule); prod-context effect is only the digest facet with its Probable ceiling.
 - REQ-B5-07 (SHOULD) Keep overhead within the test-run budget agreed with the test-automation service (measured per run; published metric).
@@ -219,7 +219,7 @@ Stores: evidence lake (writer: filters; reader B3) · envelope archive (writer B
 | Component | Contract | Pairs | CI check |
 |---|---|---|---|
 | B3 | [`observation-envelope.schema.json`](contracts/schemas/observation-envelope.schema.json) `cloudwatch-agg` branch | B3 → B7 | Emitted fixtures validate; a fixture attempting `columnLineage`/`tl.transform` is rejected by the schema — the negative test is mandatory |
-| B5 | envelope `sidecar-test` branch + `RuntimeLineageObservation` | B5 → B7, C4 | Fixtures for boundary-only and element-mapping modes; prod-tag fixture rejected; digest-facet write shape pinned |
+| B5 | envelope `sidecar-test` branch + `RuntimeLineageObservation` + [`test-execution-annotation.schema.json`](contracts/schemas/test-execution-annotation.schema.json) | B5 → B7, C4 | Fixtures for boundary-only and element-mapping modes; prod-tag fixture rejected; annotation writes validate against the schema and never touch the artifact object (immutability property test) |
 | B6 | evolution rules | contracts dir → all consumers | Schema-diff CI: additive minor passes; removal without major + dual-publish plan fails |
 | B7 | [`ingest-gateway.openapi.yaml`](contracts/openapi/ingest-gateway.openapi.yaml) | emitters → B7 | Conformance run: every rejection reason reachable by a fixture; ack-after-durable semantics tested with a faulted Firehose double |
 | B7 | assertion-constraint enforcement | — | The full §5.2 table as a fixture matrix: for each of the 10 signals, one MAY fixture (accepted) and one MUST-NOT fixture (rejected) — 20 cases minimum, generated from the schema's allOf branches so table and validator cannot drift |

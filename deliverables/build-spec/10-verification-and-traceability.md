@@ -21,7 +21,7 @@ A coding agent has built the platform this package specifies when:
 | Components in the registry, each with exactly one PRD home | 30 (12 C + 9 B + 4 X + 5 W) | [00 §3](00-component-inventory.md) matrix; homes per step: 01→3, 02→6, 03→8, 04→4, 05→3, 06→3, 07→2, 08→1 |
 | De-review §6.2 components mapped 1:1, order-preserving | 12/12 | [00 §2.1](00-component-inventory.md) |
 | Trigger rows, each owned by exactly one step doc | 17/17 — 01: rows 1–3 · 03: 4–7, 15 · 04: 11, 13, 17 · 05: 8–9 · 06: 14, 16 · 07: 10, 12 · 08: none (by design) | [00 §4](00-component-inventory.md); [event-catalog](contracts/events/event-catalog.md) |
-| Machine-readable contract files, each carrying `x-source` (or a source table) and cited by ≥ 1 step doc | 12 (8 schemas + 3 OpenAPI + event catalog) | [contracts/README.md](contracts/README.md) inventory |
+| Machine-readable contract files, each carrying `x-source` (or a source table) and cited by ≥ 1 step doc | 13 (9 schemas + 3 OpenAPI + event catalog) | [contracts/README.md](contracts/README.md) inventory |
 | Endpoints 21–29 defined exactly once in OpenAPI (21–22 registry, 23–29 approval), referenced elsewhere | 9/9 | [`registry-api`](contracts/openapi/registry-api.openapi.yaml), [`approval-api`](contracts/openapi/approval-api.openapi.yaml) |
 | Signals in the closed set, used consistently | 10 | [00 §5](00-component-inventory.md); envelope schema enum |
 | Consumer states rendered | 7/7 | [06 §5.1](06-approval.md) REQ-B8-03 |

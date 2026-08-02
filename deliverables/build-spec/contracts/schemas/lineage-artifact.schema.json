@@ -96,15 +96,6 @@
       }
     },
     "repoClass": { "type": "string", "enum": ["application", "library", "infrastructure", "documentation", "tooling", "unknown"], "description": "ADR-029 classification in effect at extraction time" },
-    "executionConfirmedInTest": {
-      "type": "object",
-      "description": "ADR-028 digest-level facet, attached when sidecar evidence joins this artifact's digest",
-      "properties": {
-        "testRunId": { "type": "string" },
-        "pathsExecuted": { "type": "integer", "minimum": 0 },
-        "pathsTotal": { "type": "integer", "minimum": 0 }
-      }
-    },
     "artifactHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "createdAt": { "type": "string", "format": "date-time" }
   }

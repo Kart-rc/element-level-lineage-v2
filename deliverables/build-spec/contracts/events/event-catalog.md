@@ -11,7 +11,7 @@ Conventions: all events go to the `throughline-collection` EventBridge bus with 
 |---|---|---|---|---|---|---|
 | 1 | `onboarding.registered` | B1 registry | `{appId, repos[], environments[], criticalityTier}` | `appId` + registration hash | baseline/backfill | [01](../../01-onboard.md) |
 | 2 | `repo.onboarded` | C1 receiver | `{repo, installationId, defaultBranch}` | `X-GitHub-Delivery` GUID | baseline/backfill | [01](../../01-onboard.md) |
-| 3 | `repo.inventory.delta` / `repo.classified` | B2 adapter / B1 registry | `{added[], removed[]}` / `{repo, appId, class, method}` | sync-run ID / `(repo, classifiedAt)` | baseline/backfill | [01](../../01-onboard.md) |
+| 3 | `repo.inventory.delta` / `repo.classified` | B2 adapter / B1 registry | `{added[], removed[], syncRunId}` / `{repo, appId, class, method, classifiedAt}` | `syncRunId` / `(repo, classifiedAt)` | baseline/backfill | [01](../../01-onboard.md) |
 | 4 | `repo.push` | C1 receiver | `{repo, sha, changedFiles[], pusher}` | `X-GitHub-Delivery` GUID | (EventBridge-direct → W2) | [03](../../03-incremental-collection.md) |
 | 5 | `repo.pr.updated` | C1 receiver | `{repo, prNumber, headSha, baseSha, action}` | `X-GitHub-Delivery` GUID | pr-gate (FIFO by repo) | [03](../../03-incremental-collection.md) |
 | 6 | `repo.pr.rebased` | C1 receiver | `{repo, prNumber, oldHeadSha, newHeadSha}` | `X-GitHub-Delivery` GUID | pr-gate | [03](../../03-incremental-collection.md) |

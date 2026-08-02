@@ -38,11 +38,13 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["before", "after", "changeKind"],
+        "required": ["before", "after", "changeKind", "materiality"],
         "properties": {
           "before": { "type": "object" },
           "after": { "type": "object" },
-          "changeKind": { "type": "string", "enum": ["transform", "guard", "schema", "channel"] }
+          "changeKind": { "type": "string", "enum": ["transform", "guard", "schema", "channel"] },
+          "provenance": { "type": "string", "enum": ["sca", "llm"] },
+          "materiality": { "type": "string", "enum": ["material", "minor"], "description": "Carried on every delta entry kind so consumers (approval UI, review-record finalize, PR renderer) can enforce the material-only acknowledgement rule from the delta alone (ADR-024)" }
         }
       }
     },
@@ -50,10 +52,12 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["edge", "reason"],
+        "required": ["edge", "reason", "materiality"],
         "properties": {
           "edge": { "type": "object" },
-          "reason": { "type": "string", "enum": ["code-removed", "determinant-invalidated"] }
+          "reason": { "type": "string", "enum": ["code-removed", "determinant-invalidated"] },
+          "provenance": { "type": "string", "enum": ["sca", "llm"] },
+          "materiality": { "type": "string", "enum": ["material", "minor"] }
         }
       }
     },

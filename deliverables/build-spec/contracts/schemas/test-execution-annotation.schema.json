@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.throughline.internal/collection/test-execution-annotation/1.0.0",
+  "title": "Digest-keyed test-execution annotation (ADR-028)",
+  "x-source": [
+    "deliverables/aws-lineage-collection-plan/01-decision-records.md ADR-028 decision 3 ('the evidence attaches to the digest as an execution-confirmed-in-test facet')"
+  ],
+  "x-normativity": "Shape normative here. This annotation is stored ALONGSIDE the candidate artifact, keyed by artifact digest — never inside the artifact body. Candidate artifacts are immutable and content-addressed (same commit + toolchain ⇒ identical artifact hash); late-arriving sidecar evidence must not mutate them. Consumers (impact rendering, C9's pre-merge line, UI treatment) join artifact + annotations at read time. Annotations are append-only; multiple test runs on one digest produce multiple annotations.",
+  "type": "object",
+  "required": ["artifactDigest", "testRunId", "environment", "pathsExecuted", "pathsTotal", "recordedAt"],
+  "properties": {
+    "artifactDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "artifactHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "The candidate artifact this evidence was joined to, when resolvable at join time" },
+    "testRunId": { "type": "string" },
+    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "environment": { "type": "string", "description": "The test environment that produced the evidence; never a production environment (ADR-028 flag policy)" },
+    "pathsExecuted": { "type": "integer", "minimum": 0 },
+    "pathsTotal": { "type": "integer", "minimum": 0 },
+    "elementMappingsConfirmed": { "type": "integer", "minimum": 0, "description": "Count of explicitly instrumented element mappings confirmed in this run (only where the RuntimeLineageObservation admission gates passed)" },
+    "recordedAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

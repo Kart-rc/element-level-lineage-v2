@@ -8,7 +8,7 @@
   ],
   "x-normativity": "Shape normative here. Storage: DynamoDB, TTL ~90 d; written at each stage transition (~5–7 writes/flow). Powers GET /v1/flows/{correlationId}/status (endpoint 29) and the Admin screen 7. Every flow gets a record — including no-impact exits.",
   "type": "object",
-  "required": ["correlationId", "trigger", "lane", "repo", "stages", "outcome"],
+  "required": ["correlationId", "trigger", "lane", "stages", "outcome"],
   "properties": {
     "correlationId": { "type": "string", "description": "The originating trigger's envelope eventId (ULID)" },
     "trigger": {
@@ -22,9 +22,9 @@
         "proposal.finalized", "test.run.completed"
       ]
     },
-    "lane": { "type": "string", "enum": ["pr-gate", "deploy", "baseline-backfill", "incremental"], "description": "incremental = push path (not queued through the three SQS lanes; EventBridge-direct)" },
-    "app": { "type": "string" },
-    "repo": { "type": "string" },
+    "lane": { "type": "string", "enum": ["pr-gate", "deploy", "baseline-backfill", "incremental", "direct"], "description": "incremental = push path; direct = EventBridge-direct flows that use no SQS lane (e.g. proposal.finalized, collector.heartbeat-lost, ttl.expiry-approaching, interaction.aggregation) — see the event catalog's lane notes" },
+    "app": { "type": "string", "description": "Populated for app-scoped flows" },
+    "repo": { "type": "string", "description": "Populated for repo-scoped triggers (push, PR, onboarding, nightly per-repo); absent for app-, fleet-, or evidence-scoped flows such as interaction.aggregation, ttl.expiry-approaching, proposal.finalized" },
     "sha": { "type": "string" },
     "artifactDigest": { "type": "string" },
     "stages": {

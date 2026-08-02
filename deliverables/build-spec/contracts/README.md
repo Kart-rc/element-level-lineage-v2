@@ -23,6 +23,7 @@ Constraints a JSON Schema cannot express (scoring ceilings, coverage accounting,
 | `schemas/coverage-report.schema.json` | Coverage report states (workflow-spec §1/§8, approval spec screen 1) | X4 reporter → B8 UI, endpoint 22 |
 | `schemas/flow-status.schema.json` | Per-flow status record, ADR-026 (08 §5.3) | every workflow → endpoint 29, screen 7 |
 | `schemas/review-record.schema.json` | Immutable review record (ADR-024, approval spec §7) | B8/B9 → endpoint 27, auditors |
+| `schemas/test-execution-annotation.schema.json` | Digest-keyed sidecar-evidence annotation, ADR-028 — stored beside the immutable artifact, never inside it | B5 → C4, C9, impact/UI |
 | `openapi/registry-api.openapi.yaml` | Endpoints 21–22 + reclassification (B1 surface) | UI/catalog sync → B1 |
 | `openapi/ingest-gateway.openapi.yaml` | Envelope submission + schema serving (B7 surface) | signal emitters → B7 |
 | `openapi/approval-api.openapi.yaml` | Endpoints 23–29 (B8 surface) | SPA → B8 |
